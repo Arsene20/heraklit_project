@@ -1,0 +1,27 @@
+{
+  "name": "heraklit_project",
+  "version": "1.0.0",
+  "description": "My heraklit Node.js app",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "rimraf ./build && tsc",
+    "dev": "nodemon",
+    "start": "npm run build && node build/index.js"
+  },
+  "author": "Arsene",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1",
+    "graphviz": "0.0.9",
+    "jquery": "^3.6.0",
+    "ts-graphviz": "^0.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.7.2",
+    "nodemon": "^2.0.15",
+    "rimraf": "^3.0.0",
+    "ts-node": "^10.9.1",
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.4"
+  }
+}
