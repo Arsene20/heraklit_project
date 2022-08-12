@@ -1,53 +1,45 @@
 import { attribute, digraph, toDot } from 'ts-graphviz';
+import fs from 'fs'
+const hpccWasm = require('@hpcc-js/wasm')
 
- const G = digraph('G', (g) => {
-  const a = g.node('aa');
-  const b = g.node('bb');
-  const c = g.node('cc');
-  g.edge([a, b, c], {
-    [attribute.color]: 'red'
-  });
-  g.subgraph('A', (A) => {
-    const Aa = A.node('Aaa', {
-      [attribute.color]: 'pink'
-    });
+const symbolTable = new Map();
 
-    const Ab = A.node('Abb', {
-      [attribute.color]: 'violet'
-    });
-    const Ac = A.node('Acc');
-    A.edge([Aa.port('a'), Ab, Ac, 'E'], {
-      [attribute.color]: 'red'
-    });
-  });
-});
+const data = fs.readFileSync('data/graph.onto', 'utf8')
 
-const dot = toDot(G);
-console.log(dot);
+const lines = data.toString().replace(/\r\n/g,'\n').split('\n');
+for (const line of lines) {
+  const words = line.split(' ');
 
+  if (words[1] === 'is-a') {
+    // this is a declaration
+      symbolTable.set(words[0], {_type: words[2]})
+  }
+}
 
-var util = require('util'),
-graphviz = require('graphviz');
+// console.log(symbolTable)
 
-// Create digraph G
-var g = graphviz.digraph("G");
+const G = digraph('G', (g) => {
+  // console.log(symbolTable)
 
-// Add node (ID: Hello)
-var n1 = g.addNode( "Hello", {"color" : "blue"} );
-n1.set( "style", "filled" );
-
-// Add node (ID: World)
-g.addNode( "World" );
-
-// Add edge between the two nodes
-var e = g.addEdge( n1, "World" );
-e.set( "color", "red" );
+  for (const [key, value] of symbolTable.entries()) {
+    if (value._type === 'place') {
+      console.log(value)
+      g.node(key);
+    }
+  }
+})
 
 // Print the dot script
-console.log( g.to_dot() );
+const dot = toDot(G);
+console.log( dot );
+
+hpccWasm.graphvizSync().then(graphviz => {
+  const svg = graphviz.layout(toDot(G), "svg", "dot")
+  fs.writeFileSync('graph.svg', svg)
+});
 
 // Set GraphViz path (if not in your path)
-g.setGraphVizPath( "/usr/local/bin" );
+// g.setGraphVizPath( "/usr/local/bin" );
 // Generate a PNG output
-g.output( "png", "test01.png" );
+// G.output( "png", "test01.png" );
 
