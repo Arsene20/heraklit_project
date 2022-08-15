@@ -6,6 +6,7 @@ const symbolTable = new Map();
 
 const data = fs.readFileSync('data/graph.onto', 'utf8')
 
+// first read, just find all objects and their types
 const lines = data.toString().replace(/\r\n/g,'\n').split('\n');
 for (const line of lines) {
   const words = line.split(' ');
@@ -16,7 +17,21 @@ for (const line of lines) {
   }
 }
 
-// console.log(symbolTable)
+// second read, find values
+for (const line of lines) {
+  const words = line.split(' ');
+
+  if (words[1] === 'has') {
+    // this is a declaration
+    const ownerName = words[0];
+    const value = words[2];
+    const ownerObject = symbolTable.get(ownerName);
+    ownerObject['has'] = value
+    console.log("hello")
+  }
+}
+
+console.log(symbolTable)
 
 const G = digraph('G', (g) => {
   // console.log(symbolTable)
