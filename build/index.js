@@ -44,12 +44,17 @@ for (const line of lines) {
     }
 }
 let transitionNode;
+let transitionNode1;
+let transitionNode2;
+let transitionNode3;
+let transitionNode4;
 const G = (0, ts_graphviz_1.digraph)('G', (g) => {
     for (const [key, value] of symbolTable.entries()) {
         if (value._type === 'place') {
             if (typeTable.get(key)._type === 'V1') {
                 if (symbolTable.get(typeTable.get(key)._type)._type === 'vendor') {
                     g.node(typeTable.get(key)._type);
+                    transitionNode1 = typeTable.get(key)._type;
                 }
             }
             if (typeTable.get(key)._type === 't1') {
@@ -66,6 +71,7 @@ const G = (0, ts_graphviz_1.digraph)('G', (g) => {
                     }
                     if (symbolTable.get(type1)._type === 'client' && symbolTable.get(type2)._type === 'item') {
                         g.node(type1 + " " + type2);
+                        transitionNode2 = type1 + " " + type2;
                     }
                 }
             }
@@ -83,6 +89,7 @@ const G = (0, ts_graphviz_1.digraph)('G', (g) => {
                     }
                     if (symbolTable.get(type1)._type === 'vendor' && symbolTable.get(type2)._type === 'item') {
                         g.node(type1 + " " + type2);
+                        transitionNode3 = type1 + " " + type2;
                     }
                 }
             }
@@ -100,6 +107,7 @@ const G = (0, ts_graphviz_1.digraph)('G', (g) => {
                     }
                     if (symbolTable.get(type1)._type === 'client' && symbolTable.get(type2)._type === 'money') {
                         g.node(type1 + " " + type2);
+                        transitionNode4 = type1 + " " + type2;
                     }
                 }
             }
@@ -111,22 +119,22 @@ const G = (0, ts_graphviz_1.digraph)('G', (g) => {
         if (value._type === 'flow') {
             if (key === 'f1') {
                 if (symbolTable5.get(key)._type === 'vendor-available-1' && symbolTable6.get(key)._type === 'take-home') {
-                    g.edge([symbolTable5.get(key)._type, transitionNode]);
+                    g.edge([transitionNode1, transitionNode]);
                 }
             }
             if (key === 'f2') {
                 if (symbolTable5.get(key)._type === 'take-home' && symbolTable6.get(key)._type === 'alice-with-50-EUR-4') {
-                    g.edge([transitionNode, symbolTable5.get(key)._type]);
+                    g.edge([transitionNode, transitionNode4]);
                 }
             }
             if (key === 'f3') {
                 if (symbolTable5.get(key)._type === 'client-with-item-2' && symbolTable6.get(key)._type === 'take-home') {
-                    g.edge([symbolTable5.get(key)._type, transitionNode]);
+                    g.edge([transitionNode, transitionNode3]);
                 }
             }
             if (key === 'f4') {
                 if (symbolTable5.get(key)._type === 'take-home' && symbolTable6.get(key)._type === 'vendor-with-item-3') {
-                    g.edge([transitionNode, symbolTable5.get(key)._type]);
+                    g.edge([transitionNode2, transitionNode]);
                 }
             }
         }
