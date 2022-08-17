@@ -20,6 +20,45 @@ const symbolTable7 = new Map();
 
 const typeTable = new Map();
 
+class Place {
+  name: String
+  value: any[]
+}
+
+class Transition {
+  name: String
+  inFlows: InFlow[];
+  outFlows: OutFlow[];
+  equations: Tuple[] = []
+}
+
+class InFlow {
+  src: Place
+  tgt: Transition
+  vars: String[]
+}
+
+class OutFlow {
+  src: Transition
+  tgt: Place
+  vars: String[]
+}
+
+class Function {
+  name: String
+  rowList: Tuple[] = []
+}
+
+class Tuple {
+  values: String[] = []
+}
+
+const functionF = new Function()
+functionF.name = "f"
+var tuple = new Tuple()
+tuple.values.push("shirt", "50Eur")
+functionF.rowList.push(tuple);
+
 const data = fs.readFileSync('src/data/graph.onto', 'utf8');
 
 const lines = data.toString().replace(/\r\n/g, '\n').split('\n');
