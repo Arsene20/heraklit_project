@@ -2,11 +2,10 @@
   "name": "heraklit_project",
   "version": "1.0.0",
   "description": "My heraklit Node.js app",
-  "main": "build/index.js",
   "scripts": {
     "build": "rimraf ./build && tsc",
     "dev": "nodemon",
-    "start": "npm run build && node build/index.js"
+    "start": "ts-node src/index.ts"
   },
   "author": "Arsene",
   "license": "ISC",

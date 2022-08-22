@@ -1,94 +1,93 @@
 vendor-available-1 is-a place
-V1 is-a vendor
 vendor-available-1 has V1
+V1 is-a vendor
 
 client-with-item-2 is-a place
 client-with-item-2 has t1
+t1 is-a tuple
 t1 has-client Alice
 t1 has-item shirt
-t1 is-a tuple
 Alice is-a client
 shirt is-a item
 
 vendor-with-item-3 is-a place
 vendor-with-item-3 has t2
+t2 is-a tuple
 t2 has-vendor V1
 t2 has-item shirt
-t2 is-a tuple
 V1 is-a vendor
 shirt is-a item 
 
 client-with-50-EUR-4 is-a place
 client-with-50-EUR-4 has t3
+t3 is-a tuple
 t3 has-client Alice
 t3 has-money 50-EUR
-t3 is-a tuple
 Alice is-a client
 50-EUR is-a money
 
 cashier-available-5 is-a place
-cashier-available-5 has cashier
+cashier-available-5 has C1
+C1 is-a cashier
 
 client-with-receipt-6 is-a place
 client-with-receipt-6 has t4
+t4 is-a tuple
 t4 has-client Alice
 t4 has-receipt receipt
-t4 is-a tuple
 Alice is-a client
 receipt is-a pays
 
 vendor-with-packed-item-7 is-a place
 vendor-with-packed-item-7 has t5
+t5 is-a tuple
 t5 has-vendor V1
 t5 has-item packed-shirt
-t5 is-a tuple
 V1 is-a vendor
 packed-shirt is-a item 
 
-take-home is-a transition-1
+take-home is-a transition
 
+f1 is-a flow
 f1 src vendor-available-1
 f1 tgt take-home
-f1 is-a flow
 
+f2 is-a flow
 f2 src take-home
 f2 tgt client-with-50-EUR-4
-f2 is-a flow
 
+f3 is-a flow
 f3 src client-with-item-2
 f3 tgt take-home
-f3 is-a flow
 
+f4 is-a flow
 f4 src take-home
 f4 tgt vendor-with-item-3
-f4 is-a flow
 
-packs-shirt is-a transition-2
+packs-shirt is-a transition
 
+f5 is-a flow
 f5 src vendor-with-item-3
 f5 tgt packs-shirt
-f5 is-a flow
 
+f6 is-a flow
 f6 src packs-shirt
 f6 tgt vendor-with-packed-item-7
-f6 is-a flow
 
-pays-take-home is-a transition-3
+pays-take-home is-a transition
 
+f7 is-a flow
 f7 src client-with-50-EUR-4
 f7 tgt pays-take-home
-f7 is-a flow
 
+f8 is-a flow
 f8 src pays-take-home
 f8 tgt cashier-available-5
-f8 is-a flow
 
+f9 is-a flow
 f9 src cashier-available-5
 f9 tgt pays-take-home
-f9 is-a flow
 
+f10 is-a flow
 f10 src pays-take-home
 f10 tgt client-with-receipt-6
-f10 is-a flow
-
-
