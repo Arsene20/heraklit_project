@@ -3,6 +3,7 @@ import fs from 'fs'
 const hpccWasm = require('@hpcc-js/wasm');
 
 const symbolTable: Map<string, Symbol> = new Map();
+const placeTable: Map<string, Place> = new Map();
 
 class Place {
   name: string
@@ -53,50 +54,199 @@ const data = fs.readFileSync('src/data/system.onto', 'utf8');
 
 const lines = data.toString().replace(/\r\n/g, '\n').split('\n');
 
-for (const line of  lines) {
+setSymbolTableByReadingFile (lines);
+function setSymbolTableByReadingFile (lines: any) {
+  for (const line of  lines) {
 
-  const words = line.split(' ');
-  if(words == undefined || words.length < 3) {
-    continue;
+    const words = line.split(' ');
+    if(words == undefined || words.length < 3) {
+      continue;
+    }
+    if (words[1].trim() === 'is-a') {
+      symbolTable.set(words[0], {
+        name: words[0],
+        _type: words[2],
+        value: new Map()
+      });
+    }
+  
   }
-  if (words[1].trim() === 'is-a') {
-    symbolTable.set(words[0], {
-      name: words[0],
-      _type: words[2],
-      value: new Map()
-    });
-  }
-
 }
 
-for (const line of  lines) {
+setValueOfPlaceInSymboleTable (lines);
+function setValueOfPlaceInSymboleTable (lines: any) {
+  for (const line of  lines) {
 
-  const words = line.split(' ');
-
-  if(words.length < 3 || words[1] === "is-a") {
-    continue;
+    const words = line.split(' ');
+  
+    if(words.length < 3 || words[1] === "is-a") {
+      continue;
+    }
+  
+    const ownerName = words[0].trim();
+    const verb = words[1]; 
+    const value = words[2];
+  
+    const ownerObject: Symbol = symbolTable.get(ownerName);
+    const valueObject = symbolTable.get(value);
+  
+    if(valueObject === undefined) {
+      continue;
+    }
+  
+    ownerObject.value.set(verb, valueObject);
+  
   }
-
-  const ownerName = words[0].trim();
-  const verb = words[1]; 
-  const value = words[2];
-
-  const ownerObject: Symbol = symbolTable.get(ownerName);
-  const valueObject = symbolTable.get(value);
-
-  if(valueObject === undefined) {
-    continue;
-  }
-
-  ownerObject.value.set(verb, valueObject);
-
-  console.log(ownerObject);
-
 }
+
+function doOneTransition(symbolTable: Map<string, Symbol>) {
+  var inFlowsList: Symbol[] = [];
+  var outFlowsList: Symbol[] = [];
+  const bindings: Map<string, Symbol> = new Map();
+  // Search for transition
+  for(const [key, value] of symbolTable.entries()) {
+      if(value._type === 'transition') {
+        console.log('transition : ' + value.name);
+        // Find incomming flows
+        inFlowsList = findIncommingFlows(symbolTable, value.name);
+        // Find outcomming flows
+        outFlowsList = findOutCommingFlows(symbolTable, value.name);
+        
+        for(let flow of inFlowsList) {
+          bindOneVariable(bindings, flow, 'var', 'src', 'has');
+        }
+        for(let flow of outFlowsList) {
+          bindOneVariable(bindings, flow, 'var', 'tgt', 'has');
+        }
+      }
+  }
+  console.log(bindings);
+}
+
+function bindOneVariable(bindings: Map<string, Symbol>, flow: Symbol, variable: string, typeFlow: string, subject: string) {
+  // const vars: Symbol = flow.value.get('var');
+  // const place: Symbol = flow.value.get('src');
+  // const object: Symbol = place.value.get('has');
+
+  const vars: Symbol = flow.value.get(variable);
+  const place: Symbol = flow.value.get(typeFlow);
+  const object: Symbol = place.value.get(subject);
+  bindings.set(vars.name, object);
+  
+}
+
+function bindMultipleVariable(bindings: Map<string, Symbol[]>, flow: Symbol, variable: string, typeFlow: string, subject: string) {
+
+  var varSymbol: Symbol[] = [];
+
+
+  const vars: Symbol = flow.value.get(variable);
+  const place: Symbol = flow.value.get(typeFlow);
+  const object: Symbol = place.value.get(subject);
+  console.log(vars);
+  for(const [key, value] of vars.value.entries()) {
+    // if(value._type === 'var') {
+      console.log(value.value);
+    // }
+    varSymbol.push()
+  }
+  // bindings.set(vars.name, object);
+  
+}
+
+function findIncommingFlows(symbolTable: Map<string, Symbol>, transitionName: string): Symbol[] {
+  const result: Symbol[] = [];
+  for(const [key, value] of symbolTable.entries()) {
+    if(value._type != 'flow') {
+      continue;
+    }
+    const tgt = value.value.get('tgt');
+    if(tgt._type === 'transition' && tgt.name === transitionName) {
+      result.push(value);
+    }
+  }
+  return result;
+}
+
+function findOutCommingFlows(symbolTable: Map<string, Symbol>, transitionName: string): Symbol[] {
+  const result: Symbol[] = [];
+  for(const [key, value] of symbolTable.entries()) {
+    if(value._type != 'flow') {
+      continue;
+    }
+    const tgt = value.value.get('src');
+    if(tgt._type === 'transition' && tgt.name === transitionName) {
+      result.push(value);
+    }
+  }
+  return result;
+}
+
+doOneTransition(symbolTable);
+
+// console.log(myStringify(symbolTable));
+
+
+// function myStringify(symbol: any): string {
+
+//   let string = '';
+//   for (const [key, value] of symbol.entries()) {
+
+//     string += "" + key + ': ' + 
+      
+//     JSON.stringify(value) 
+    
+//     + '\n';
+
+//     if (value.value == undefined || value.value.length == 0 ){
+//       continue;
+//     }
+
+//     for (const [key2, value2] of value.value.entries()) {
+
+//       if (value2 == undefined){
+//         continue;
+//       }
+  
+//       string += JSON.stringify(key2) + ': ' + 
+        
+//       JSON.stringify(value) 
+      
+//       + '\n';
+
+//       if (value2.value == undefined || value2.value.length == 0 ){
+//         continue;
+//       }
+  
+//       for (const [key3, value3] of value2.value.entries()) {
+    
+//         if (value3 == undefined){
+//           continue;
+//         }
+    
+//         string += JSON.stringify(key3) + ': ' + 
+          
+//         JSON.stringify(value) 
+        
+//         + '\n\n';
+        
+//       }     
+      
+//     }
+    
+//   }
+
+//   return string;
+
+// }
 
 const G = digraph('G', (g) => {
 
+
+
   for(const [key, value] of symbolTable.entries()) {
+
+
 
     const intFlow = new InFlow();
     const outFlow = new OutFlow();
@@ -126,6 +276,8 @@ const G = digraph('G', (g) => {
         // tuple.values = words;
         // console.log(JSON.stringify(tuple, null, 3));
       }
+
+      // console.log(place);
         
       g.createNode(value.name, {[attribute.label]: labelText});
       
@@ -186,6 +338,6 @@ hpccWasm.graphvizSync().then(graphviz => {
 
 const dot = toDot
 (G);
-console.log(dot);
+// console.log(dot);
 
 
