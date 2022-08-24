@@ -103,6 +103,7 @@ function doOneTransition(symbolTable: Map<string, Symbol>) {
   var inFlowsList: Symbol[] = [];
   var outFlowsList: Symbol[] = [];
   const bindings: Map<string, Symbol> = new Map();
+  const bindSymboleTable: Map<string, Symbol> = new Map();
   // Search for transition
   for(const [key, value] of symbolTable.entries()) {
       if(value._type === 'transition') {
@@ -113,25 +114,73 @@ function doOneTransition(symbolTable: Map<string, Symbol>) {
         outFlowsList = findOutCommingFlows(symbolTable, value.name);
         
         for(let flow of inFlowsList) {
-          bindOneVariable(bindings, flow, 'var', 'src', 'has');
+          bindOneInPutVariable(bindings, flow);
         }
         for(let flow of outFlowsList) {
-          bindOneVariable(bindings, flow, 'var', 'tgt', 'has');
+          bindOneOutputVariable(symbolTable, bindings, flow);
         }
+
+
+        // remove objects from input places
+        
+        // add objects to the output places
+
+        // write new systemState
+
+        // draw svg
+
+        // extend reachability graph
       }
   }
   console.log(bindings);
 }
 
-function bindOneVariable(bindings: Map<string, Symbol>, flow: Symbol, variable: string, typeFlow: string, subject: string) {
-  // const vars: Symbol = flow.value.get('var');
-  // const place: Symbol = flow.value.get('src');
-  // const object: Symbol = place.value.get('has');
-
-  const vars: Symbol = flow.value.get(variable);
-  const place: Symbol = flow.value.get(typeFlow);
-  const object: Symbol = place.value.get(subject);
+function bindOneInPutVariable(bindings: Map<string, Symbol>, flow: Symbol) {
+  const vars: Symbol = flow.value.get('var');
+  const place: Symbol = flow.value.get('src');
+  const object: Symbol = place.value.get('has');
   bindings.set(vars.name, object);
+  if(vars._type === 'tuple') {
+    for(const [key, value] of vars.value.entries()) {
+      if (object == undefined) {
+        continue;
+      }
+      const tupleObject = object.value.get(key);
+      bindings.set(value.name, tupleObject);
+    }
+  }
+  
+}
+
+function bindOneOutputVariable(bindSymboleTable: Map<string, Symbol>, bindings: Map<string, Symbol>, flow: Symbol) {
+  const vars: Symbol = flow.value.get('var');
+  if(bindings.get(vars.name)) {
+     return;
+  }
+  if(vars._type === 'tuple') {
+    const newTuple: Symbol = new Symbol();
+    newTuple.name = flow.name + 'vt';
+    newTuple._type = 'tuple';
+    bindings.set(vars.name, newTuple);
+    for(const [key, value] of vars.value.entries()) {
+      if(bindings.get(value.name)) {
+        continue;
+      }
+      const tupleVars = bindSymboleTable.get(value.name);
+      const tupleValue = tupleVars.value.get('equals');
+      const functName = tupleValue.value.get('functionName');
+      const param1 = tupleValue.value.get('param1');
+      const param1Value = bindings.get(param1.name);
+      const funct = bindSymboleTable.get(functName.name);
+      const functResult = funct.value.get(param1Value.name);
+
+      bindings.set(tupleVars.name, functResult);
+
+      console.log('tuple');
+
+    }
+
+  }
   
 }
 
