@@ -90,7 +90,7 @@ function setValueOfPlaceInSymboleTable (lines: any) {
     const ownerObject: Symbol = symbolTable.get(ownerName);
     const valueObject = symbolTable.get(value);
   
-    if(valueObject === undefined) {
+    if(valueObject === undefined || ownerObject === undefined) {
       continue;
     }
   
@@ -103,7 +103,6 @@ function doOneTransition(symbolTable: Map<string, Symbol>) {
   var inFlowsList: Symbol[] = [];
   var outFlowsList: Symbol[] = [];
   const bindings: Map<string, Symbol> = new Map();
-  const bindSymboleTable: Map<string, Symbol> = new Map();
   // Search for transition
   for(const [key, value] of symbolTable.entries()) {
       if(value._type === 'transition') {
@@ -119,11 +118,17 @@ function doOneTransition(symbolTable: Map<string, Symbol>) {
         for(let flow of outFlowsList) {
           bindOneOutputVariable(symbolTable, bindings, flow);
         }
-
-
-        // remove objects from input places
         
+        // remove objects from input places
+        for(let flow of inFlowsList) {
+          // console.log(flow);
+          removeObjectFromInputPlace(symbolTable, flow);
+        }
+
         // add objects to the output places
+        for(let flow of outFlowsList) {
+          addObjectToOutputPlace(symbolTable, bindings, flow);
+        }
 
         // write new systemState
 
@@ -132,7 +137,7 @@ function doOneTransition(symbolTable: Map<string, Symbol>) {
         // extend reachability graph
       }
   }
-  console.log(bindings);
+
 }
 
 function bindOneInPutVariable(bindings: Map<string, Symbol>, flow: Symbol) {
@@ -150,6 +155,74 @@ function bindOneInPutVariable(bindings: Map<string, Symbol>, flow: Symbol) {
     }
   }
   
+}
+
+function removeObjectFromInputPlace(symbolTable: Map<string, Symbol>, flow: Symbol) {
+  // find  the source flows
+  const place: Symbol = flow.value.get('src');
+  if(place._type === 'place') {
+    //find the object of place
+    const symbolTableObject: Symbol = symbolTable.get(place.name);
+    symbolTableObject.value.delete('has');
+  }
+}
+
+function addObjectToOutputPlace(symbolTable: Map<string, Symbol>, bindings: Map<string, Symbol>, flow: Symbol) {
+
+  let vars: Symbol = flow.value.get('var');
+  let place: Symbol = flow.value.get('tgt');
+  var symbolTableObject: Symbol = symbolTable.get(place.name);
+
+  var substringContent = vars.name.substring(1,3);
+
+  var symbolVariables: Symbol = symbolTable.get(substringContent);
+
+  symbolVariables = vars;
+  symbolVariables.name = substringContent;
+  symbolTableObject.value.get('has').value = symbolVariables.value;
+  setVariablesWithValues(bindings, symbolTable);
+  // console.log(symbolVariables);
+
+}
+
+// function setVariablesWithValues(bindings: Map<string, Symbol>, symbolVariables: Symbol) {
+  
+//   for(const [key, value] of symbolVariables.value.entries()) {
+//     symbolVariables.value.get(key)._type = bindings.get(value.name)._type;
+//     symbolVariables.value.get(key).name = bindings.get(value.name).name;
+//   }
+//   // console.log(symbolVariables);
+
+// }
+
+function setVariablesWithValues(bindings: Map<string, Symbol>, symbolTable: Map<string, Symbol>) {
+  
+  for(const [key, value] of symbolTable.entries()) {
+
+    if(value._type === 'place') {
+
+      const labelSymbol = value.value.get("has");
+      var labelText = " ";
+      if(labelSymbol) {
+        if (labelSymbol._type === "tuple") {
+
+          for(const [key, value] of labelSymbol.value.entries()) {
+            labelText = labelText + " " +value.name;
+          }
+
+        }
+        else {
+          labelText = labelSymbol.name;
+        }
+
+      }
+              
+    }
+    
+    
+
+  }
+
 }
 
 function bindOneOutputVariable(bindSymboleTable: Map<string, Symbol>, bindings: Map<string, Symbol>, flow: Symbol) {
@@ -176,30 +249,11 @@ function bindOneOutputVariable(bindSymboleTable: Map<string, Symbol>, bindings: 
 
       bindings.set(tupleVars.name, functResult);
 
-      console.log('tuple');
+      // console.log('tuple');
 
     }
 
   }
-  
-}
-
-function bindMultipleVariable(bindings: Map<string, Symbol[]>, flow: Symbol, variable: string, typeFlow: string, subject: string) {
-
-  var varSymbol: Symbol[] = [];
-
-
-  const vars: Symbol = flow.value.get(variable);
-  const place: Symbol = flow.value.get(typeFlow);
-  const object: Symbol = place.value.get(subject);
-  console.log(vars);
-  for(const [key, value] of vars.value.entries()) {
-    // if(value._type === 'var') {
-      console.log(value.value);
-    // }
-    varSymbol.push()
-  }
-  // bindings.set(vars.name, object);
   
 }
 
@@ -233,146 +287,59 @@ function findOutCommingFlows(symbolTable: Map<string, Symbol>, transitionName: s
 
 doOneTransition(symbolTable);
 
-// console.log(myStringify(symbolTable));
-
-
-// function myStringify(symbol: any): string {
-
-//   let string = '';
-//   for (const [key, value] of symbol.entries()) {
-
-//     string += "" + key + ': ' + 
-      
-//     JSON.stringify(value) 
-    
-//     + '\n';
-
-//     if (value.value == undefined || value.value.length == 0 ){
-//       continue;
-//     }
-
-//     for (const [key2, value2] of value.value.entries()) {
-
-//       if (value2 == undefined){
-//         continue;
-//       }
-  
-//       string += JSON.stringify(key2) + ': ' + 
-        
-//       JSON.stringify(value) 
-      
-//       + '\n';
-
-//       if (value2.value == undefined || value2.value.length == 0 ){
-//         continue;
-//       }
-  
-//       for (const [key3, value3] of value2.value.entries()) {
-    
-//         if (value3 == undefined){
-//           continue;
-//         }
-    
-//         string += JSON.stringify(key3) + ': ' + 
-          
-//         JSON.stringify(value) 
-        
-//         + '\n\n';
-        
-//       }     
-      
-//     }
-    
-//   }
-
-//   return string;
-
-// }
-
 const G = digraph('G', (g) => {
 
-
+  // console.log(symbolTable);
 
   for(const [key, value] of symbolTable.entries()) {
 
-
-
-    const intFlow = new InFlow();
-    const outFlow = new OutFlow();
-    const place = new Place();
-    const transition = new Transition();
-
     if(value._type === 'place') {
 
-      place.name = value.name;
       const labelSymbol = value.value.get("has");
       var labelText = " ";
       if(labelSymbol) {
         if (labelSymbol._type === "tuple") {
 
           for(const [key, value] of labelSymbol.value.entries()) {
-            labelText = labelText + " " +value.name;  
-            place.value.push(value.name);
+            labelText = labelText + " " +value.name;
           }
 
         }
         else {
-          place.value.push(labelSymbol.name);
           labelText = labelSymbol.name;
         }
 
-        // const words = labelText.split(' ').filter(item => item != '');
-        // tuple.values = words;
-        // console.log(JSON.stringify(tuple, null, 3));
       }
-
-      // console.log(place);
         
       g.createNode(value.name, {[attribute.label]: labelText});
       
     }
     else if(value._type === 'transition') {
       
-      transition.name = value.name;
       g.createNode(value.name, {[attribute.shape]: "box"});
       
     }
     else if(value._type === 'flow') {
 
-      // console.log(value);
-
       const src = value.value.get("src");
       const tgt = value.value.get("tgt");
-
-      intFlow.src = {
-        name: src.name,
-        value: []
+      const varElements = value.value.get("var");
+      var label: string = '';
+      if(varElements._type === 'tuple') {
+        for(const [key, value] of varElements.value.entries()) {
+          if (label != '') {
+            label += ', ' + value.name
+          }
+          else {
+            label += value.name;
+          }
+        }
+        g.createEdge([src.name, tgt.name], {[attribute.label]: '(' + label + ')'});
       }
-      intFlow.tgt = {
-        name: tgt.name,
-        inFlows: [],
-        outFlows: [],
-        equations: [] = []
+      else{
+        g.createEdge([src.name, tgt.name], {[attribute.label]: value.value.get("var").name});
       }
-
-      outFlow.src = {
-        name: tgt.name,
-        inFlows: [],
-        outFlows: [],
-        equations: [] = []
-      }
-      outFlow.tgt = {
-        name: src.name,
-        value: []
-      }
-      // const transition1: Transition = transition;
-      transition.inFlows.push(intFlow);
-      transition.outFlows.push(outFlow);
-
-      // console.log(transition);
-
-      g.createEdge([src.name, tgt.name]);
-      
+            
     }
     // console.log(JSON.stringify(outFlow, null, 3));
 

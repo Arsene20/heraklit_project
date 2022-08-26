@@ -11,8 +11,8 @@ Alice is-a client
 shirt is-a item
 
 vendor-with-item is-a place
-vendor-with-item-3 has t2
-t1 is-a tuple
+vendor-with-item has t2
+t2 is-a tuple
 shirt is-a item
 
 client-with-money is-a place
@@ -28,12 +28,22 @@ f1 var y
 y is-a var
 
 f2 is-a flow
-f2 src take-home
-f2 tgt client-with-money
+f2 src client-with-item
+f2 tgt take-home
 f2 var vt2
 vt2 is-a tuple
 vt2 has-client x
-vt2 has-money m
+vt2 has-item z
+x is-a var
+z is-a var
+
+f3 is-a flow
+f3 src take-home
+f3 tgt client-with-money
+f3 var vt3
+vt3 is-a tuple
+vt3 has-client x
+vt3 has-money m
 x is-a var
 m is-a var
 m equals fc1
@@ -45,15 +55,6 @@ f shirt 50-EUR
 fc1 param1 z
 z is-a var
 
-f3 is-a flow
-f3 src client-with-item
-f3 tgt take-home
-f3 var vt3
-vt3 is-a tuple
-vt3 has-client x
-vt3 has-item z
-x is-a var
-z is-a var
 
 f4 is-a flow
 f4 src take-home
