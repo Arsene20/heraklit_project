@@ -202,17 +202,17 @@ function setVariablesWithValues(bindings: Map<string, Symbol>, symbolTable: Map<
     if(value._type === 'place') {
 
       const labelSymbol = value.value.get("has");
-      var labelText = " ";
       if(labelSymbol) {
         if (labelSymbol._type === "tuple") {
 
           for(const [key, value] of labelSymbol.value.entries()) {
-            labelText = labelText + " " +value.name;
+            setValue(bindings, labelSymbol, value.name, key);
           }
 
         }
         else {
-          labelText = labelSymbol.name;
+          // labelText = labelSymbol.name;
+          setValue(bindings, labelSymbol, labelSymbol.name, key);
         }
 
       }
@@ -223,6 +223,29 @@ function setVariablesWithValues(bindings: Map<string, Symbol>, symbolTable: Map<
 
   }
 
+  console.log(symbolTable);
+
+}
+
+function setValue(bindings: Map<string, Symbol>, labelSymbol:Symbol, labelText: string, key: string) {
+  const labelSymbolValue = labelSymbol.value;
+  const labelSymbol1 = labelSymbol;
+  // var labelText = " ";
+  if(labelSymbol) {
+    if (labelSymbol._type === "tuple") {
+
+      // for(const [key, value] of labelSymbol.value.entries()) {
+        // labelText = labelText + " " +value.name;
+        labelSymbolValue.get(key).value = bindings.get(labelText).value;
+      // }
+
+    }
+    else {
+      // labelText = labelSymbol.name;
+      labelSymbol1.value = bindings.get(labelText).value;
+    }
+
+  }
 }
 
 function bindOneOutputVariable(bindSymboleTable: Map<string, Symbol>, bindings: Map<string, Symbol>, flow: Symbol) {
