@@ -154,7 +154,7 @@ function bindOneInPutVariable(bindings: Map<string, Symbol>, flow: Symbol) {
       bindings.set(value.name, tupleObject);
     }
   }
-  
+
 }
 
 function removeObjectFromInputPlace(symbolTable: Map<string, Symbol>, flow: Symbol) {
@@ -180,52 +180,52 @@ function addObjectToOutputPlace(symbolTable: Map<string, Symbol>, bindings: Map<
   symbolVariables = vars;
   symbolVariables.name = substringContent;
   symbolTableObject.value.get('has').value = symbolVariables.value;
-  setVariablesWithValues(bindings, symbolTable);
+  setVariablesWithValues(bindings, symbolVariables);
   // console.log(symbolVariables);
 
 }
 
-// function setVariablesWithValues(bindings: Map<string, Symbol>, symbolVariables: Symbol) {
-  
-//   for(const [key, value] of symbolVariables.value.entries()) {
-//     symbolVariables.value.get(key)._type = bindings.get(value.name)._type;
-//     symbolVariables.value.get(key).name = bindings.get(value.name).name;
-//   }
-//   // console.log(symbolVariables);
+function setVariablesWithValues(bindings: Map<string, Symbol>, symbolVariables: Symbol) {
 
-// }
-
-function setVariablesWithValues(bindings: Map<string, Symbol>, symbolTable: Map<string, Symbol>) {
-  
-  for(const [key, value] of symbolTable.entries()) {
-
-    if(value._type === 'place') {
-
-      const labelSymbol = value.value.get("has");
-      if(labelSymbol) {
-        if (labelSymbol._type === "tuple") {
-
-          for(const [key, value] of labelSymbol.value.entries()) {
-            setValue(bindings, labelSymbol, value.name, key);
-          }
-
-        }
-        else {
-          // labelText = labelSymbol.name;
-          setValue(bindings, labelSymbol, labelSymbol.name, key);
-        }
-
-      }
-              
-    }
-    
-    
-
+  for(const [key, value] of symbolVariables.value.entries()) {
+    symbolVariables.value.get(key)._type = bindings.get(value.name)._type;
+    symbolVariables.value.get(key).name = bindings.get(value.name).name;
   }
 
-  console.log(symbolTable);
-
 }
+
+// function setVariablesWithValues(bindings: Map<string, Symbol>, symbolTable: Map<string, Symbol>) {
+
+//   for(const [key, value] of symbolTable.entries()) {
+
+//     if(value._type === 'place') {
+
+//       const labelSymbol = value.value.get("has");
+//       if(labelSymbol) {
+//         if (labelSymbol._type === "tuple") {
+
+//           for(const [key1, value1] of labelSymbol.value.entries()) {
+//             console.log();
+//             setValue(bindings, labelSymbol, value1.name, key1);
+//           }
+
+//         }
+//         else {
+//           // labelText = labelSymbol.name;
+//           setValue(bindings, labelSymbol, labelSymbol.name, key);
+//         }
+
+//       }
+
+//     }
+    
+    
+
+//   }
+
+//   console.log(symbolTable);
+
+// }
 
 function setValue(bindings: Map<string, Symbol>, labelSymbol:Symbol, labelText: string, key: string) {
   const labelSymbolValue = labelSymbol.value;
