@@ -243,8 +243,6 @@ function bindOneOutputVariable(bindSymboleTable: Map<string, Symbol>, bindings: 
 
       bindings.set(tupleVars.name, functResult);
 
-      // console.log('tuple');
-
     }
 
   }
@@ -282,8 +280,6 @@ function findOutCommingFlows(symbolTable: Map<string, Symbol>, transitionName: s
 doOneTransition(symbolTable, bindings);
 
 const G = digraph('G', (g) => {
-
-  // console.log(symbolTable);
 
   for(const [key, value] of symbolTable.entries()) {
 
