@@ -3,7 +3,7 @@ import fs from 'fs'
 const hpccWasm = require('@hpcc-js/wasm');
 
 const symbolTable: Map<string, Symbol> = new Map();
-const placeTable: Map<string, Place> = new Map();
+const bindings: Map<string, Symbol> = new Map();
 
 class Place {
   name: string
@@ -43,12 +43,6 @@ class Symbol {
   _type: string
   value: Map<string, Symbol> = new Map()
 }
-
-const functionF = new Function()
-functionF.name = "f"
-var tuple = new Tuple()
-tuple.values.push("shirt", "50Eur")
-functionF.rowList.push(tuple);
 
 const data = fs.readFileSync('src/data/system.onto', 'utf8');
 
@@ -99,10 +93,9 @@ function setValueOfPlaceInSymboleTable (lines: any) {
   }
 }
 
-function doOneTransition(symbolTable: Map<string, Symbol>) {
+function doOneTransition(symbolTable: Map<string, Symbol>, bindings: Map<string, Symbol> ) {
   var inFlowsList: Symbol[] = [];
   var outFlowsList: Symbol[] = [];
-  const bindings: Map<string, Symbol> = new Map();
   // Search for transition
   for(const [key, value] of symbolTable.entries()) {
       if(value._type === 'transition') {
@@ -154,7 +147,7 @@ function bindOneInPutVariable(bindings: Map<string, Symbol>, flow: Symbol) {
       bindings.set(value.name, tupleObject);
     }
   }
-
+  
 }
 
 function removeObjectFromInputPlace(symbolTable: Map<string, Symbol>, flow: Symbol) {
@@ -180,71 +173,49 @@ function addObjectToOutputPlace(symbolTable: Map<string, Symbol>, bindings: Map<
   symbolVariables = vars;
   symbolVariables.name = substringContent;
   symbolTableObject.value.get('has').value = symbolVariables.value;
-  setVariablesWithValues(bindings, symbolVariables);
-  // console.log(symbolVariables);
+
+  setVariablesWithValues(bindings, symbolTable);
+  console.log(symbolTableObject);
 
 }
 
-function setVariablesWithValues(bindings: Map<string, Symbol>, symbolVariables: Symbol) {
+function setVariablesWithValues(bindings: Map<string, Symbol>, symbolTable: Map<string, Symbol>) {
 
-  for(const [key, value] of symbolVariables.value.entries()) {
-    symbolVariables.value.get(key)._type = bindings.get(value.name)._type;
-    symbolVariables.value.get(key).name = bindings.get(value.name).name;
+  for(const [key, value] of symbolTable.entries()) {
+
+    if(value._type === 'place') {
+
+      const labelSymbol = value.value.get("has");
+      if(labelSymbol) {
+        if (labelSymbol._type === "tuple") {
+
+          for(const [key1, value1] of labelSymbol.value.entries()) {
+            setValue(bindings, labelSymbol, value1.name, key1);
+          }
+
+        }
+        else {
+          setValue(bindings, labelSymbol, labelSymbol.name, key);
+        }
+
+      }
+
+    }
+
   }
 
 }
 
-// function setVariablesWithValues(bindings: Map<string, Symbol>, symbolTable: Map<string, Symbol>) {
-
-//   for(const [key, value] of symbolTable.entries()) {
-
-//     if(value._type === 'place') {
-
-//       const labelSymbol = value.value.get("has");
-//       if(labelSymbol) {
-//         if (labelSymbol._type === "tuple") {
-
-//           for(const [key1, value1] of labelSymbol.value.entries()) {
-//             console.log();
-//             setValue(bindings, labelSymbol, value1.name, key1);
-//           }
-
-//         }
-//         else {
-//           // labelText = labelSymbol.name;
-//           setValue(bindings, labelSymbol, labelSymbol.name, key);
-//         }
-
-//       }
-
-//     }
-    
-    
-
-//   }
-
-//   console.log(symbolTable);
-
-// }
-
-function setValue(bindings: Map<string, Symbol>, labelSymbol:Symbol, labelText: string, key: string) {
+function setValue(bindings: Map<string, Symbol>, labelSymbol:Symbol, variable: string, key: string) {
   const labelSymbolValue = labelSymbol.value;
   const labelSymbol1 = labelSymbol;
-  // var labelText = " ";
   if(labelSymbol) {
     if (labelSymbol._type === "tuple") {
-
-      // for(const [key, value] of labelSymbol.value.entries()) {
-        // labelText = labelText + " " +value.name;
-        labelSymbolValue.get(key).value = bindings.get(labelText).value;
-      // }
-
+      labelSymbolValue.get(key).value = bindings.get(variable).value;
     }
     else {
-      // labelText = labelSymbol.name;
-      labelSymbol1.value = bindings.get(labelText).value;
+      labelSymbol1.value = bindings.get(variable).value;
     }
-
   }
 }
 
@@ -308,7 +279,7 @@ function findOutCommingFlows(symbolTable: Map<string, Symbol>, transitionName: s
   return result;
 }
 
-doOneTransition(symbolTable);
+doOneTransition(symbolTable, bindings);
 
 const G = digraph('G', (g) => {
 
@@ -324,12 +295,12 @@ const G = digraph('G', (g) => {
         if (labelSymbol._type === "tuple") {
 
           for(const [key, value] of labelSymbol.value.entries()) {
-            labelText = labelText + " " +value.name;
+            labelText = labelText + " " + bindings.get(value.name).name;
           }
 
         }
         else {
-          labelText = labelSymbol.name;
+          labelText = bindings.get(value.name).name;
         }
 
       }
