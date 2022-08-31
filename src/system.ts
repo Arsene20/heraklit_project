@@ -1,10 +1,12 @@
 import { attribute, digraph, toDot } from 'ts-graphviz';
 import fs from 'fs'
+import BindingsList from "./bindingsList";
 
 const hpccWasm = require('@hpcc-js/wasm');
 
 const symbolTable: Map<string, Symbol> = new Map();
 const bindings: Map<string, Symbol> = new Map();
+const bindingsList = new BindingsList();
 
 // const bindings1 = new  BindingsList();
 
@@ -140,7 +142,8 @@ function doOneTransition(symbolTable: Map<string, Symbol>, bindings: Map<string,
 function bindOneInPutVariable(bindings: Map<string, Symbol>, flow: Symbol) {
   const vars: Symbol = flow.value.get('var');
   const place: Symbol = flow.value.get('src');
-  const object: Symbol = place.value.get('has');
+  const objectList: Symbol[] = place.value.get('has');
+  bindingsList.expand(vars.name, objectList);
   bindings.set(vars.name, object);
   if(vars._type === 'tuple') {
     for(const [key, value] of vars.value.entries()) {

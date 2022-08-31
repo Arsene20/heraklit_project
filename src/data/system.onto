@@ -1,14 +1,23 @@
 vendor-available is-a place
 V1 is-a vendor
+V2 is-a vendor
 vendor-available has V1
+vendor-available has V2
 
 client-with-item is-a place
 client-with-item has t1
+client-with-item has t11
 t1 is-a tuple
+t11 is-a tuple
 t1 has-client Alice
 t1 has-item shirt
 Alice is-a client
 shirt is-a item
+t11 has-client Bob
+t11 has-item shoes
+Bob is-a client
+shoes is-a item
+
 
 vendor-with-item is-a place
 vendor-with-item has t2

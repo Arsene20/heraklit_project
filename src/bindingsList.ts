@@ -48,3 +48,5 @@ class BindingsList {
 
     }
 }
+
+export default BindingsList;
