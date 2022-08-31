@@ -1,9 +1,14 @@
 import { attribute, digraph, toDot } from 'ts-graphviz';
 import fs from 'fs'
+
 const hpccWasm = require('@hpcc-js/wasm');
 
 const symbolTable: Map<string, Symbol> = new Map();
 const bindings: Map<string, Symbol> = new Map();
+
+// const bindings1 = new  BindingsList();
+
+const bindingsVariables: Map<string, string>[] = [];
 
 class Place {
   name: string
@@ -114,7 +119,6 @@ function doOneTransition(symbolTable: Map<string, Symbol>, bindings: Map<string,
         
         // remove objects from input places
         for(let flow of inFlowsList) {
-          // console.log(flow);
           removeObjectFromInputPlace(symbolTable, flow);
         }
 
@@ -147,7 +151,37 @@ function bindOneInPutVariable(bindings: Map<string, Symbol>, flow: Symbol) {
       bindings.set(value.name, tupleObject);
     }
   }
-  
+
+}
+
+function bindOneOutputVariable(bindSymboleTable: Map<string, Symbol>, bindings: Map<string, Symbol>, flow: Symbol) {
+  const vars: Symbol = flow.value.get('var');
+  if(bindings.get(vars.name)) {
+     return;
+  }
+  if(vars._type === 'tuple') {
+    const newTuple: Symbol = new Symbol();
+    newTuple.name = flow.name + 'vt';
+    newTuple._type = 'tuple';
+    bindings.set(vars.name, newTuple);
+    for(const [key, value] of vars.value.entries()) {
+      if(bindings.get(value.name)) {
+        continue;
+      }
+      const tupleVars = bindSymboleTable.get(value.name);
+      const tupleValue = tupleVars.value.get('equals');
+      const functName = tupleValue.value.get('functionName');
+      const param1 = tupleValue.value.get('param1');
+      const param1Value = bindings.get(param1.name);
+      const funct = bindSymboleTable.get(functName.name);
+      const functResult = funct.value.get(param1Value.name);
+
+      bindings.set(tupleVars.name, functResult);
+
+    }
+
+  }
+
 }
 
 function removeObjectFromInputPlace(symbolTable: Map<string, Symbol>, flow: Symbol) {
@@ -219,35 +253,6 @@ function setValue(bindings: Map<string, Symbol>, labelSymbol:Symbol, variable: s
   }
 }
 
-function bindOneOutputVariable(bindSymboleTable: Map<string, Symbol>, bindings: Map<string, Symbol>, flow: Symbol) {
-  const vars: Symbol = flow.value.get('var');
-  if(bindings.get(vars.name)) {
-     return;
-  }
-  if(vars._type === 'tuple') {
-    const newTuple: Symbol = new Symbol();
-    newTuple.name = flow.name + 'vt';
-    newTuple._type = 'tuple';
-    bindings.set(vars.name, newTuple);
-    for(const [key, value] of vars.value.entries()) {
-      if(bindings.get(value.name)) {
-        continue;
-      }
-      const tupleVars = bindSymboleTable.get(value.name);
-      const tupleValue = tupleVars.value.get('equals');
-      const functName = tupleValue.value.get('functionName');
-      const param1 = tupleValue.value.get('param1');
-      const param1Value = bindings.get(param1.name);
-      const funct = bindSymboleTable.get(functName.name);
-      const functResult = funct.value.get(param1Value.name);
-
-      bindings.set(tupleVars.name, functResult);
-
-    }
-
-  }
-  
-}
 
 function findIncommingFlows(symbolTable: Map<string, Symbol>, transitionName: string): Symbol[] {
   const result: Symbol[] = [];
@@ -291,12 +296,22 @@ const G = digraph('G', (g) => {
         if (labelSymbol._type === "tuple") {
 
           for(const [key, value] of labelSymbol.value.entries()) {
-            labelText = labelText + " " + bindings.get(value.name).name;
+            if(bindings.get(value.name) === undefined) {
+              labelText = labelText + " " + value.name;
+            }
+            else {
+              labelText = labelText + " " + bindings.get(value.name).name;
+            }
           }
 
         }
         else {
-          labelText = bindings.get(value.name).name;
+          if(bindings.get(value.name) === undefined) {
+            labelText = labelSymbol.name;
+          }
+          else {
+            labelText = bindings.get(value.name).name;
+          }
         }
 
       }
@@ -338,7 +353,7 @@ const G = digraph('G', (g) => {
 
 hpccWasm.graphvizSync().then(graphviz => {
   const svg = graphviz.layout(toDot(G), "svg", "dot")
-  fs.writeFileSync('graph.svg', svg)
+  fs.writeFileSync('system_graph_1.svg', svg)
 });
 
 

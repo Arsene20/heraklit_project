@@ -1,0 +1,69 @@
+vendor-available is-a place
+V1 is-a vendor
+V2 is-a vendor
+vendor-available has V1
+vendor-available has V2
+
+client-with-item is-a place
+client-with-item has t1
+t1 is-a tuple
+t1 has-client Alice
+t1 has-item shirt
+Alice is-a client
+shirt is-a item
+
+vendor-with-item is-a place
+vendor-with-item has t2
+t2 is-a tuple
+shirt is-a item
+
+client-with-money is-a place
+client-with-money has t3
+t3 is-a tuple
+
+take-home is-a transition
+
+f1 is-a flow
+f1 src vendor-available
+f1 tgt take-home
+f1 var y
+y is-a var
+
+f2 is-a flow
+f2 src client-with-item
+f2 tgt take-home
+f2 var vt2
+vt2 is-a tuple
+vt2 has-client x
+vt2 has-item z
+x is-a var
+z is-a var
+
+f3 is-a flow
+f3 src take-home
+f3 tgt client-with-money
+f3 var vt3
+vt3 is-a tuple
+vt3 has-client x
+vt3 has-money m
+x is-a var
+m is-a var
+m equals fc1
+fc1 is-a functCall
+fc1 functionName f
+f is-a function
+f shirt 50-EUR
+50-EUR is-a money
+fc1 param1 z
+z is-a var
+
+
+f4 is-a flow
+f4 src take-home
+f4 tgt vendor-with-item
+f4 var vt4
+vt4 is-a tuple
+vt4 has-vendor y
+vt4 has-item z
+y is-a var
+z is-a var
