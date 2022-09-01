@@ -1,14 +1,14 @@
 import _ from 'lodash';
 
-export class BindingsList {
+class BindingsList {
 
-    bindings: Map<string, string>[] = [];
+    bindings: Map<string, Symbol>[] = [];
 
-    expand(varName: string, valueList: string[]) {
+    expand(varName: string, valueList: Symbol[]) {
 
         if(this.bindings.length === 0) {
-            for(const value of valueList) {
-                const newMap: Map<string, string> = new Map();
+            for(const [key, value] of valueList.entries()) {
+                const newMap: Map<string, Symbol> = new Map();
                 newMap.set(varName, value);
                 this.bindings.push(newMap);
             }
@@ -28,3 +28,5 @@ export class BindingsList {
 
     }
 }
+
+export default BindingsList;
