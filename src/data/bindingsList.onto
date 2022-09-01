@@ -6,20 +6,31 @@ vendor-available has V2
 
 client-with-item is-a place
 client-with-item has t1
+client-with-item has t11
 t1 is-a tuple
 t1 has-client Alice
 t1 has-item shirt
 Alice is-a client
 shirt is-a item
+t11 is-a tuple
+t11 has-client Bob
+t11 has-item shoes
+Bob is-a client
+shoes is-a item
 
 vendor-with-item is-a place
 vendor-with-item has t2
+vendor-with-item has t22
 t2 is-a tuple
 shirt is-a item
+t22 is-a tuple
+shoes is-a item
 
 client-with-money is-a place
 client-with-money has t3
+client-with-money has t33
 t3 is-a tuple
+t33 is-a tuple
 
 take-home is-a transition
 
@@ -56,7 +67,6 @@ f shirt 50-EUR
 50-EUR is-a money
 fc1 param1 z
 z is-a var
-
 
 f4 is-a flow
 f4 src take-home

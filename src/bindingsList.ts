@@ -1,26 +1,6 @@
 import _ from 'lodash';
-import { attribute, digraph, toDot } from 'ts-graphviz';
-import fs from 'fs'
 
-const hpccWasm = require('@hpcc-js/wasm');
-
-const symbolTable: Map<string, Symbol> = new Map();
-const bindings: Map<string, Symbol> = new Map();
-
-const bindingsVariables: Map<string, string>[] = [];
-
-class Place {
-  name: string
-  value: any[] = []
-}
-
-class Symbol {
-  name: string
-  _type: string
-  value: Map<string, Symbol> = new Map()
-}
-
-class BindingsList {
+export class BindingsList {
 
     bindings: Map<string, string>[] = [];
 

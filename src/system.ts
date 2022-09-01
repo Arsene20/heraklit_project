@@ -1,12 +1,13 @@
 import { attribute, digraph, toDot } from 'ts-graphviz';
 import fs from 'fs'
+import { BindingsList } from './bindingsList';
 
 const hpccWasm = require('@hpcc-js/wasm');
 
 const symbolTable: Map<string, Symbol> = new Map();
 const bindings: Map<string, Symbol> = new Map();
 
-// const bindings1 = new  BindingsList();
+const bindingsList = new BindingsList();
 
 const bindingsVariables: Map<string, string>[] = [];
 
@@ -49,7 +50,7 @@ class Symbol {
   value: Map<string, Symbol> = new Map()
 }
 
-const data = fs.readFileSync('src/data/system.onto', 'utf8');
+const data = fs.readFileSync('src/data/bindingsList.onto', 'utf8');
 
 const lines = data.toString().replace(/\r\n/g, '\n').split('\n');
 
