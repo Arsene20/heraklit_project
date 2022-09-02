@@ -60,7 +60,9 @@ fc1 is-a functCall
 fc1 functionName f
 f is-a function
 f shirt 50-EUR
+f shoes 110-EUR
 50-EUR is-a money
+110-EUR is-a money
 fc1 param1 z
 z is-a var
 

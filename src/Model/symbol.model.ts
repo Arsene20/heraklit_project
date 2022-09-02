@@ -1,7 +1,7 @@
 class Symbol {
     name: string
     _type: string
-    value: Map<string, Symbol> = new Map()
+    value: Map<string, Symbol |  Symbol[]> = new Map()
 }
 
 export default Symbol;
