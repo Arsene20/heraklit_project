@@ -24,14 +24,14 @@ class BindingsList {
                     const funct = symbolTable.get(functName.name) as Symbol;
                     const functResult = funct.value.get(param1Value) as Symbol;
                     oldMap.set(newSubVar.name, functResult.name);
-                    console.log(vars);
+                    this.bindings.push(oldMap);
                 }
             }
         }
 
     }
 
-    bindings: Map<string, string>[] = [];
+    public bindings: Map<string, string>[] = [];
 
     expand(varName: string, valueList: Symbol[], symbolTable: Map<string, Symbol | Symbol[]>) {
 
@@ -70,7 +70,7 @@ class BindingsList {
                 const value = symbolValue.value.get(key) as Symbol
                 newMap.set(newVarSymbol.name, value.name);
             }
-          }
+        }
 
     }
 

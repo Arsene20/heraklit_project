@@ -6,7 +6,7 @@ import Symbol from './Model/symbol.model';
 const hpccWasm = require('@hpcc-js/wasm');
 
 const symbolTable: Map<string, Symbol> = new Map();
-const bindings: Map<string, string> = new Map();
+const bindings: Map<string, string>[] = [];
 const bindingsList = new BindingsList();
 
 const bindingsVariables: Map<string, string>[] = [];
@@ -106,7 +106,7 @@ function setValueOfPlaceInSymboleTable (lines: any) {
   }
 }
 
-function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string> ) {
+function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[] ) {
   var inFlowsList: Symbol[] = [];
   var outFlowsList: Symbol[] = [];
   // Search for transition
@@ -123,19 +123,22 @@ function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: 
           bindOneInPutVariable(flow);
         }
         for(let flow of outFlowsList) {
-          bindOneOutputVariable(symbolTable, bindings, flow);
+          bindOneOutputVariable(symbolTable, flow);
         }
 
+        bindings = bindingsList.bindings;
 
-        // // remove objects from input places
-        // for(let flow of inFlowsList) {
-        //   removeObjectFromInputPlace(symbolTable, flow);
-        // }
+        console.log(bindings);
+
+        // remove objects from input places
+        for(let flow of inFlowsList) {
+          // removeObjectFromInputPlace(symbolTable, flow);
+        }
 
         // add objects to the output places
-        // for(let flow of outFlowsList) {
-        //   addObjectToOutputPlace(symbolTable, bindings, flow);
-        // }
+        for(let flow of outFlowsList) {
+          addObjectToOutputPlace(symbolTable, bindings, flow);
+        }
 
         // write new systemState
 
@@ -144,8 +147,8 @@ function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: 
         // extend reachability graph
       }
   }
-
-  console.log(bindingsList);
+// const binds = bindingsList.bindings;
+  // console.log(bindings);
 
 }
 
@@ -163,84 +166,94 @@ function bindOneInPutVariable( flow: Symbol) {
   bindingsList.expand(vars.name, objectList, symbolTable);
 }
 
-function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>, flow: Symbol) {
+function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, flow: Symbol) {
   const vars: Symbol = flow.value.get('var') as Symbol;
   bindingsList.expandBySymbolTable(vars, symbolTable);
-  if(vars._type === 'tuple') {
-    const newTuple: Symbol = new Symbol();
-    newTuple.name = flow.name + 'vt';
-    newTuple._type = 'tuple';
+  // if(vars._type === 'tuple') {
+  //   const newTuple: Symbol = new Symbol();
+  //   newTuple.name = flow.name + 'vt';
+  //   newTuple._type = 'tuple';
+  // }
+}
+
+function removeObjectFromInputPlace(symbolTable: Map<string, Symbol | Symbol[]>, flow: Symbol) {
+  // find the source flows
+  const place: Symbol = flow.value.get('src') as Symbol;
+  if(place._type === 'place') {
+    //find the object of place
+    const symbolTableObject: Symbol = symbolTable.get(place.name) as Symbol;
+    symbolTableObject.value.delete('has');
   }
 }
 
-// function removeObjectFromInputPlace(symbolTable: Map<string, Symbol>, flow: Symbol) {
-//   // find  the source flows
-//   const place: Symbol = flow.value.get('src');
-//   if(place._type === 'place') {
-//     //find the object of place
-//     const symbolTableObject: Symbol = symbolTable.get(place.name);
-//     symbolTableObject.value.delete('has');
-//   }
-// }
+function addObjectToOutputPlace(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[], flow: Symbol) {
 
-// function addObjectToOutputPlace(symbolTable: Map<string, Symbol>, bindings: Map<string, Symbol>, flow: Symbol) {
+  let vars: Symbol = flow.value.get('var') as Symbol;
+  let place: Symbol = flow.value.get('tgt') as Symbol;
+  var symbolTableObject: Symbol = symbolTable.get(place.name) as Symbol;
 
-//   let vars: Symbol = flow.value.get('var');
-//   let place: Symbol = flow.value.get('tgt');
-//   var symbolTableObject: Symbol = symbolTable.get(place.name);
+  var substringContent = vars.name.substring(1,3);
 
-//   var substringContent = vars.name.substring(1,3);
+  var symbolVariables: Symbol = symbolTable.get(substringContent) as Symbol;
 
-//   var symbolVariables: Symbol = symbolTable.get(substringContent);
+  symbolVariables = vars;
+  symbolVariables.name = substringContent;
+  const symbolVar = symbolVariables.value;
+  const symbolTableObj = symbolTableObject.value.get('has') as Symbol;
+  symbolTableObj.value = symbolVar;
 
-//   symbolVariables = vars;
-//   symbolVariables.name = substringContent;
-//   symbolTableObject.value.get('has').value = symbolVariables.value;
+  // setVariablesWithValues(bindings, symbolTable);
+  console.log(symbolTableObject);
 
-//   setVariablesWithValues(bindings, symbolTable);
-//   console.log(symbolTableObject);
+}
 
-// }
+function setVariablesWithValues(bindings: Map<string, string>[], symbolTable: Map<string, Symbol | Symbol[]>) {
 
-// function setVariablesWithValues(bindings: Map<string, Symbol>, symbolTable: Map<string, Symbol>) {
+  for(const [key, value] of symbolTable.entries()) {
+      const valueSymbol = value as Symbol;
+    if(valueSymbol._type === 'place') {
 
-//   for(const [key, value] of symbolTable.entries()) {
+      const labelSymbol = valueSymbol.value.get("has") as Symbol;
+      if(labelSymbol) {
+        if (labelSymbol._type === "tuple") {
 
-//     if(value._type === 'place') {
+          for(const [key1, value1] of labelSymbol.value.entries()) {
+            const valueTuple = value1 as Symbol
+            setValue(bindings, labelSymbol, valueTuple.name, key1);
+          }
 
-//       const labelSymbol = value.value.get("has");
-//       if(labelSymbol) {
-//         if (labelSymbol._type === "tuple") {
+        }
+        else {
+          setValue(bindings, labelSymbol, labelSymbol.name, key);
+        }
 
-//           for(const [key1, value1] of labelSymbol.value.entries()) {
-//             setValue(bindings, labelSymbol, value1.name, key1);
-//           }
+      }
 
-//         }
-//         else {
-//           setValue(bindings, labelSymbol, labelSymbol.name, key);
-//         }
+    }
 
-//       }
+  }
 
-//     }
+}
 
-//   }
-
-// }
-
-// function setValue(bindings: Map<string, Symbol>, labelSymbol:Symbol, variable: string, key: string) {
-//   const labelSymbolValue = labelSymbol.value;
-//   const labelSymbol1 = labelSymbol;
-//   if(labelSymbol) {
-//     if (labelSymbol._type === "tuple") {
-//       labelSymbolValue.get(key).value = bindings.get(variable).value;
-//     }
-//     else {
-//       labelSymbol1.value = bindings.get(variable).value;
-//     }
-//   }
-// }
+function setValue(bindings: Map<string, string>[], labelSymbol:Symbol, variable: string, key: string) {
+  const labelSymbol1 = labelSymbol;
+  if(labelSymbol) {
+    if (labelSymbol._type === "tuple") {
+      for(const bindingsMap of bindings) {
+        const labelSymbolValue = labelSymbol.value.get(key) as Symbol;
+        if(labelSymbolValue === undefined) {
+          continue;
+        }
+        labelSymbolValue.name = bindingsMap.get(variable);
+      }
+    }
+    else {
+      for(const bindingsMap of bindings) {
+        labelSymbol1.name = bindingsMap.get(variable);
+      }
+    }
+  }
+}
 
 
 function findIncommingFlows(symbolTable: Map<string, Symbol | Symbol[]>, transitionName: string): Symbol[] {
@@ -279,81 +292,89 @@ function findOutCommingFlows(symbolTable: Map<string, Symbol | Symbol[]>, transi
 
 doOneTransition(symbolTable, bindings);
 
-// const G = digraph('G', (g) => {
+const G = digraph('G', (g) => {
 
-//   for(const [key, value] of symbolTable.entries()) {
+  for(const [key, value] of symbolTable.entries()) {
+    if(value._type === 'place') {
 
-//     if(value._type === 'place') {
+      const labelSymbol: Symbol[] = value.value.get("has") as Symbol[];
+      var labelText = " ";
+      if(labelSymbol) {
+        for(let i = 0; i < labelSymbol.length; i++) {
 
-//       const labelSymbol = value.value.get("has");
-//       var labelText = " ";
-//       if(labelSymbol) {
-//         if (labelSymbol._type === "tuple") {
+          if (labelSymbol[i]._type === "tuple") {
 
-//           for(const [key, value] of labelSymbol.value.entries()) {
-//             if(bindings.get(value.name) === undefined) {
-//               labelText = labelText + " " + value.name;
-//             }
-//             else {
-//               labelText = labelText + " " + bindings.get(value.name).name;
-//             }
-//           }
+            for(const [key, value] of labelSymbol[i].value.entries()) {
+              const valueTuple = value as Symbol;
+              if(bindings.length === 0) {
+                labelText = labelText + " " + valueTuple.name;
+              }
+              else {
+                for(const valueVar of bindings) {
+                  labelText = labelText + " " + valueVar.get(valueTuple.name);
+                }
+              }
+            }
 
-//         }
-//         else {
-//           if(bindings.get(value.name) === undefined) {
-//             labelText = labelSymbol.name;
-//           }
-//           else {
-//             labelText = bindings.get(value.name).name;
-//           }
-//         }
+          }
+          else {
+            if(bindings.length === 0) {
+              labelText = labelText + " " + labelSymbol[i].name;
+            }
+            else {
+              for(const valueVar of bindings) {
+                labelText = labelText + " " + valueVar.get(labelSymbol[i].name);
+              }
+            }
+          }
 
-//       }
-        
-//       g.createNode(value.name, {[attribute.label]: labelText});
+        }
+
+      }
+      g.createNode(value.name, {[attribute.label]: labelText});
       
-//     }
-//     else if(value._type === 'transition') {
+    }
+    else if(value._type === 'transition') {
 
-//       g.createNode(value.name, {[attribute.shape]: "box"});
-      
-//     }
-//     else if(value._type === 'flow') {
+      g.createNode(value.name, {[attribute.shape]: "box"});
 
-//       const src = value.value.get("src");
-//       const tgt = value.value.get("tgt");
-//       const varElements = value.value.get("var");
-//       var label: string = '';
-//       if(varElements._type === 'tuple') {
-//         for(const [key, value] of varElements.value.entries()) {
-//           if (label != '') {
-//             label += ', ' + value.name
-//           }
-//           else {
-//             label += value.name;
-//           }
-//         }
-//         g.createEdge([src.name, tgt.name], {[attribute.label]: '(' + label + ')'});
-//       }
-//       else{
-//         g.createEdge([src.name, tgt.name], {[attribute.label]: value.value.get("var").name});
-//       }
+    }
+    else if(value._type === 'flow') {
 
-//     }
-//     // console.log(JSON.stringify(outFlow, null, 3));
+      const src = value.value.get("src") as Symbol;
+      const tgt = value.value.get("tgt") as Symbol;
+      const varElements = value.value.get("var") as Symbol;
+      var label: string = '';
+      if(varElements._type === 'tuple') {
+        for(const [key, value] of varElements.value.entries()) {
+          const valueTuple = value as Symbol;
+          if (label != '') {
+            label += ', ' + valueTuple.name
+          }
+          else {
+            label += valueTuple.name;
+          }
+        }
+        g.createEdge([src.name, tgt.name], {[attribute.label]: '(' + label + ')'});
+      }
+      else{
+        g.createEdge([src.name, tgt.name], {[attribute.label]: varElements.name});
+      }
 
-//   }
-// });
+    }
+    // console.log(JSON.stringify(outFlow, null, 3));
 
-// hpccWasm.graphvizSync().then(graphviz => {
-//   const svg = graphviz.layout(toDot(G), "svg", "dot")
-//   fs.writeFileSync('system_graph_1.svg', svg)
-// });
+  }
+});
+
+hpccWasm.graphvizSync().then(graphviz => {
+  const svg = graphviz.layout(toDot(G), "svg", "dot");
+  fs.writeFileSync('system_graph_1.svg', svg);
+});
 
 
-// const dot = toDot
-// (G);
+const dot = toDot
+(G);
 // console.log(dot);
 
 
