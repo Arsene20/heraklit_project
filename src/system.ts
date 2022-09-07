@@ -2,6 +2,7 @@ import { attribute, digraph, toDot } from 'ts-graphviz';
 import fs from 'fs'
 import BindingsList from './bindingsList';
 import Symbol from './Model/symbol.model';
+import _ from 'lodash';
 
 const hpccWasm = require('@hpcc-js/wasm');
 
@@ -194,7 +195,9 @@ function addObjectToOutputPlace(symbolTable: Map<string, Symbol | Symbol[]>, bin
 
   var substringContent = vars.name.substring(1,3);
 
-  var symbolVariables: Symbol = symbolTable.get(substringContent) as Symbol;
+  let symbolVariables: Symbol = new Symbol();
+  symbolVariables.value = new Map()
+  symbolVariables = _.cloneDeep(symbolTable.get(substringContent) as Symbol);
 
   symbolVariables = vars;
   symbolVariables.name = substringContent;
@@ -202,7 +205,7 @@ function addObjectToOutputPlace(symbolTable: Map<string, Symbol | Symbol[]>, bin
   const symbolTableObj = symbolTableObject.value.get('has') as Symbol;
   symbolTableObj.value = symbolVar;
 
-  // setVariablesWithValues(bindings, symbolTable);
+  setVariablesWithValues(bindings, symbolTable);
   console.log(symbolTableObject);
 
 }
