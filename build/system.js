@@ -9,14 +9,13 @@ const bindingsList_1 = __importDefault(require("./bindingsList"));
 const lodash_1 = __importDefault(require("lodash"));
 const findFlows_1 = __importDefault(require("./findFlows"));
 const objectsPlaces_1 = __importDefault(require("./objectsPlaces"));
-const bindVariable_1 = __importDefault(require("./bindVariable"));
 const hpccWasm = require('@hpcc-js/wasm');
 const symbolTable = new Map();
 const bindings = [];
 const bindingsList = new bindingsList_1.default();
 const findFlows = new findFlows_1.default();
 const objectsPlaces = new objectsPlaces_1.default();
-const bindVariable = new bindVariable_1.default();
+const bindingsVariables = [];
 const data = fs_1.default.readFileSync('src/data/system.onto', 'utf8');
 const lines = data.toString().replace(/\r\n/g, '\n').split('\n');
 setSymbolTableByReadingFile(lines);
@@ -79,15 +78,13 @@ function doOneTransition(symbolTable, bindings) {
                 bindOneInPutVariable(flow);
             }
             for (let flow of outFlowsList) {
-                bindVariable.bindOneOutputVariable(symbolTable, flow);
+                bindOneOutputVariable(symbolTable, flow);
             }
             bindings = bindingsList.bindings;
             console.log(bindings);
             doAllBindings(symbolTable, bindings, value.name);
         }
     }
-    // const binds = bindingsList.bindings;
-    // console.log(bindings);
 }
 function doAllBindings(symbolTable, bindings, transitionName) {
     for (const currentbinding of bindings) {
@@ -120,6 +117,10 @@ function bindOneInPutVariable(flow) {
         objectList.push(place.value.get('has'));
     }
     bindingsList.expand(vars.name, objectList, symbolTable);
+}
+function bindOneOutputVariable(symbolTable, flow) {
+    const vars = flow.value.get('var');
+    bindingsList.expandBySymbolTable(vars, symbolTable);
 }
 doOneTransition(symbolTable, bindings);
 const G = (0, ts_graphviz_1.digraph)('G', (g) => {

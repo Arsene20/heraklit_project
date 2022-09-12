@@ -27,7 +27,6 @@ class BindingsList {
                     const funct = symbolTable.get(functName.name);
                     const functResult = funct.value.get(param1Value);
                     oldMap.set(newSubVar.name, functResult.name);
-                    this.bindings.push(oldMap);
                 }
             }
         }

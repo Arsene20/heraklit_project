@@ -82,7 +82,7 @@ function setValueOfPlaceInSymboleTable (lines: any) {
 function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[] ) {
   var inFlowsList: Symbol[] = [];
   var outFlowsList: Symbol[] = [];
-  
+
   // Search for transition
   for(const [key, value] of symbolTable.entries()) {
       if(! Array.isArray(value) && value._type === 'transition') {
@@ -124,7 +124,7 @@ function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Ma
 
      // remove objects from input places
     for(let flow of inFlowsList) {
-      objectsPlaces.removeObjectFromInputPlace(symbolTable, flow);
+      // objectsPlaces.removeObjectFromInputPlace(symbolTable, flow);
     }
 
     // add objects to the output places
