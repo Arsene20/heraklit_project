@@ -3,47 +3,19 @@ import fs from 'fs'
 import BindingsList from './bindingsList';
 import Symbol from './Model/symbol.model';
 import _ from 'lodash';
+import FindFlows from './findFlows';
+import ObjectsPlaces from './objectsPlaces';
 
 const hpccWasm = require('@hpcc-js/wasm');
 
 const symbolTable: Map<string, Symbol> = new Map();
 const bindings: Map<string, string>[] = [];
 const bindingsList = new BindingsList();
+const findFlows = new FindFlows();
+const objectsPlaces = new ObjectsPlaces();
 
 const bindingsVariables: Map<string, string>[] = [];
 
-class Place {
-  name: string
-  value: any[] = []
-}
-
-class Transition {
-  name: string
-  inFlows: InFlow[] = [];
-  outFlows: OutFlow[] = [];
-  equations: Tuple[] = []
-}
-
-class InFlow {
-  src: Place
-  tgt: Transition
-  vars: string[] = []
-}
-
-class OutFlow {
-  src: Transition
-  tgt: Place
-  vars: string[] = []
-}
-
-class Function {
-  name: string
-  rowList: Tuple[] = []
-}
-
-class Tuple {
-  values: string[] = []
-}
 
 const data = fs.readFileSync('src/data/system.onto', 'utf8');
 
@@ -73,7 +45,7 @@ function setValueOfPlaceInSymboleTable (lines: any) {
   for (const line of  lines) {
 
     const words = line.split(' ');
-  
+
     if(words.length < 3 || words[1] === "is-a") {
       continue;
     }
@@ -110,16 +82,17 @@ function setValueOfPlaceInSymboleTable (lines: any) {
 function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[] ) {
   var inFlowsList: Symbol[] = [];
   var outFlowsList: Symbol[] = [];
+  
   // Search for transition
   for(const [key, value] of symbolTable.entries()) {
       if(! Array.isArray(value) && value._type === 'transition') {
 
         console.log('transition : ' + value.name);
         // Find incomming flows
-        inFlowsList = findIncommingFlows(symbolTable, value.name);
+        inFlowsList = findFlows.findIncommingFlows(symbolTable, value.name);
         // Find outcomming flows
-        outFlowsList = findOutCommingFlows(symbolTable, value.name);
-        
+        outFlowsList = findFlows.findOutCommingFlows(symbolTable, value.name);
+
         for(let flow of inFlowsList) {
           bindOneInPutVariable(flow);
         }
@@ -131,25 +104,41 @@ function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: 
 
         console.log(bindings);
 
-        // remove objects from input places
-        for(let flow of inFlowsList) {
-          // removeObjectFromInputPlace(symbolTable, flow);
-        }
+        doAllBindings(symbolTable, bindings, value.name);
 
-        // add objects to the output places
-        for(let flow of outFlowsList) {
-          addObjectToOutputPlace(symbolTable, bindings, flow);
-        }
-
-        // write new systemState
-
-        // draw svg
-
-        // extend reachability graph
       }
   }
-// const binds = bindingsList.bindings;
-  // console.log(bindings);
+
+}
+
+function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[], transitionName: string) {
+
+  for(const currentbinding of bindings) {
+
+    const symbolTableClone = _.cloneDeep(symbolTable);
+
+     // Find incomming flows
+     let inFlowsList = findFlows.findIncommingFlows(symbolTable, transitionName);
+     // Find outcomming flows
+     let outFlowsList = findFlows.findOutCommingFlows(symbolTable, transitionName);
+
+     // remove objects from input places
+    for(let flow of inFlowsList) {
+      objectsPlaces.removeObjectFromInputPlace(symbolTable, flow);
+    }
+
+    // add objects to the output places
+    for(let flow of outFlowsList) {
+      objectsPlaces.addObjectToOutputPlace(symbolTableClone, currentbinding, flow);
+    }
+
+    // write new systemState
+
+    // draw svg
+
+    // extend reachability graph
+
+  }
 
 }
 
@@ -170,127 +159,6 @@ function bindOneInPutVariable( flow: Symbol) {
 function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, flow: Symbol) {
   const vars: Symbol = flow.value.get('var') as Symbol;
   bindingsList.expandBySymbolTable(vars, symbolTable);
-  // if(vars._type === 'tuple') {
-  //   const newTuple: Symbol = new Symbol();
-  //   newTuple.name = flow.name + 'vt';
-  //   newTuple._type = 'tuple';
-  // }
-}
-
-function removeObjectFromInputPlace(symbolTable: Map<string, Symbol | Symbol[]>, flow: Symbol) {
-  // find the source flows
-  const place: Symbol = flow.value.get('src') as Symbol;
-  if(place._type === 'place') {
-    //find the object of place
-    const symbolTableObject: Symbol = symbolTable.get(place.name) as Symbol;
-    symbolTableObject.value.delete('has');
-  }
-}
-
-function addObjectToOutputPlace(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[], flow: Symbol) {
-
-  let vars: Symbol = flow.value.get('var') as Symbol;
-  let place: Symbol = flow.value.get('tgt') as Symbol;
-  var symbolTableObject: Symbol = symbolTable.get(place.name) as Symbol;
-
-  var substringContent = vars.name.substring(1,3);
-
-  let symbolVariables: Symbol = new Symbol();
-  symbolVariables.value = new Map()
-  symbolVariables = _.cloneDeep(symbolTable.get(substringContent) as Symbol);
-
-  symbolVariables = vars;
-  symbolVariables.name = substringContent;
-  const symbolVar = symbolVariables.value;
-  const symbolTableObj = symbolTableObject.value.get('has') as Symbol;
-  symbolTableObj.value = symbolVar;
-
-  setVariablesWithValues(bindings, symbolTable);
-  console.log(symbolTableObject);
-
-}
-
-function setVariablesWithValues(bindings: Map<string, string>[], symbolTable: Map<string, Symbol | Symbol[]>) {
-
-  for(const [key, value] of symbolTable.entries()) {
-      const valueSymbol = value as Symbol;
-    if(valueSymbol._type === 'place') {
-
-      const labelSymbol = valueSymbol.value.get("has") as Symbol;
-      if(labelSymbol) {
-        if (labelSymbol._type === "tuple") {
-
-          for(const [key1, value1] of labelSymbol.value.entries()) {
-            const valueTuple = value1 as Symbol
-            setValue(bindings, labelSymbol, valueTuple.name, key1);
-          }
-
-        }
-        else {
-          setValue(bindings, labelSymbol, labelSymbol.name, key);
-        }
-
-      }
-
-    }
-
-  }
-
-}
-
-function setValue(bindings: Map<string, string>[], labelSymbol:Symbol, variable: string, key: string) {
-  const labelSymbol1 = labelSymbol;
-  if(labelSymbol) {
-    if (labelSymbol._type === "tuple") {
-      for(const bindingsMap of bindings) {
-        const labelSymbolValue = labelSymbol.value.get(key) as Symbol;
-        if(labelSymbolValue === undefined) {
-          continue;
-        }
-        labelSymbolValue.name = bindingsMap.get(variable);
-      }
-    }
-    else {
-      for(const bindingsMap of bindings) {
-        labelSymbol1.name = bindingsMap.get(variable);
-      }
-    }
-  }
-}
-
-
-function findIncommingFlows(symbolTable: Map<string, Symbol | Symbol[]>, transitionName: string): Symbol[] {
-  const result: Symbol[] = [];
-  for(const [key, value] of symbolTable.entries()) {
-    if (Array.isArray(value)) {
-      continue
-    }
-    if(value._type != 'flow') {
-      continue;
-    }
-    const tgt = value.value.get('tgt') as Symbol;
-    if(tgt._type === 'transition' && tgt.name === transitionName) {
-      result.push(value);
-    }
-  }
-  return result;
-}
-
-function findOutCommingFlows(symbolTable: Map<string, Symbol | Symbol[]>, transitionName: string): Symbol[] {
-  const result: Symbol[] = [];
-  for(const [key, value] of symbolTable.entries()) {
-    if (Array.isArray(value)) {
-      continue
-    }
-    if(value._type != 'flow') {
-      continue;
-    }
-    const tgt = value.value.get('src') as Symbol;
-    if(tgt._type === 'transition' && tgt.name === transitionName) {
-      result.push(value);
-    }
-  }
-  return result;
 }
 
 doOneTransition(symbolTable, bindings);
@@ -309,26 +177,12 @@ const G = digraph('G', (g) => {
 
             for(const [key, value] of labelSymbol[i].value.entries()) {
               const valueTuple = value as Symbol;
-              if(bindings.length === 0) {
-                labelText = labelText + " " + valueTuple.name;
-              }
-              else {
-                for(const valueVar of bindings) {
-                  labelText = labelText + " " + valueVar.get(valueTuple.name);
-                }
-              }
+              labelText = labelText + " " + valueTuple.name;
             }
 
           }
           else {
-            if(bindings.length === 0) {
-              labelText = labelText + " " + labelSymbol[i].name;
-            }
-            else {
-              for(const valueVar of bindings) {
-                labelText = labelText + " " + valueVar.get(labelSymbol[i].name);
-              }
-            }
+            labelText = labelText + " " + labelSymbol[i].name;
           }
 
         }

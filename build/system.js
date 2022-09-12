@@ -6,45 +6,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const ts_graphviz_1 = require("ts-graphviz");
 const fs_1 = __importDefault(require("fs"));
 const bindingsList_1 = __importDefault(require("./bindingsList"));
-const symbol_model_1 = __importDefault(require("./Model/symbol.model"));
 const lodash_1 = __importDefault(require("lodash"));
+const findFlows_1 = __importDefault(require("./findFlows"));
+const objectsPlaces_1 = __importDefault(require("./objectsPlaces"));
+const bindVariable_1 = __importDefault(require("./bindVariable"));
 const hpccWasm = require('@hpcc-js/wasm');
 const symbolTable = new Map();
 const bindings = [];
 const bindingsList = new bindingsList_1.default();
-const bindingsVariables = [];
-class Place {
-    constructor() {
-        this.value = [];
-    }
-}
-class Transition {
-    constructor() {
-        this.inFlows = [];
-        this.outFlows = [];
-        this.equations = [];
-    }
-}
-class InFlow {
-    constructor() {
-        this.vars = [];
-    }
-}
-class OutFlow {
-    constructor() {
-        this.vars = [];
-    }
-}
-class Function {
-    constructor() {
-        this.rowList = [];
-    }
-}
-class Tuple {
-    constructor() {
-        this.values = [];
-    }
-}
+const findFlows = new findFlows_1.default();
+const objectsPlaces = new objectsPlaces_1.default();
+const bindVariable = new bindVariable_1.default();
 const data = fs_1.default.readFileSync('src/data/system.onto', 'utf8');
 const lines = data.toString().replace(/\r\n/g, '\n').split('\n');
 setSymbolTableByReadingFile(lines);
@@ -100,32 +72,42 @@ function doOneTransition(symbolTable, bindings) {
         if (!Array.isArray(value) && value._type === 'transition') {
             console.log('transition : ' + value.name);
             // Find incomming flows
-            inFlowsList = findIncommingFlows(symbolTable, value.name);
+            inFlowsList = findFlows.findIncommingFlows(symbolTable, value.name);
             // Find outcomming flows
-            outFlowsList = findOutCommingFlows(symbolTable, value.name);
+            outFlowsList = findFlows.findOutCommingFlows(symbolTable, value.name);
             for (let flow of inFlowsList) {
                 bindOneInPutVariable(flow);
             }
             for (let flow of outFlowsList) {
-                bindOneOutputVariable(symbolTable, flow);
+                bindVariable.bindOneOutputVariable(symbolTable, flow);
             }
             bindings = bindingsList.bindings;
             console.log(bindings);
-            // remove objects from input places
-            for (let flow of inFlowsList) {
-                // removeObjectFromInputPlace(symbolTable, flow);
-            }
-            // add objects to the output places
-            for (let flow of outFlowsList) {
-                addObjectToOutputPlace(symbolTable, bindings, flow);
-            }
-            // write new systemState
-            // draw svg
-            // extend reachability graph
+            doAllBindings(symbolTable, bindings, value.name);
         }
     }
     // const binds = bindingsList.bindings;
     // console.log(bindings);
+}
+function doAllBindings(symbolTable, bindings, transitionName) {
+    for (const currentbinding of bindings) {
+        const symbolTableClone = lodash_1.default.cloneDeep(symbolTable);
+        // Find incomming flows
+        let inFlowsList = findFlows.findIncommingFlows(symbolTable, transitionName);
+        // Find outcomming flows
+        let outFlowsList = findFlows.findOutCommingFlows(symbolTable, transitionName);
+        // remove objects from input places
+        for (let flow of inFlowsList) {
+            objectsPlaces.removeObjectFromInputPlace(symbolTable, flow);
+        }
+        // add objects to the output places
+        for (let flow of outFlowsList) {
+            objectsPlaces.addObjectToOutputPlace(symbolTableClone, currentbinding, flow);
+        }
+        // write new systemState
+        // draw svg
+        // extend reachability graph
+    }
 }
 function bindOneInPutVariable(flow) {
     const vars = flow.value.get('var');
@@ -139,110 +121,6 @@ function bindOneInPutVariable(flow) {
     }
     bindingsList.expand(vars.name, objectList, symbolTable);
 }
-function bindOneOutputVariable(symbolTable, flow) {
-    const vars = flow.value.get('var');
-    bindingsList.expandBySymbolTable(vars, symbolTable);
-    // if(vars._type === 'tuple') {
-    //   const newTuple: Symbol = new Symbol();
-    //   newTuple.name = flow.name + 'vt';
-    //   newTuple._type = 'tuple';
-    // }
-}
-function removeObjectFromInputPlace(symbolTable, flow) {
-    // find the source flows
-    const place = flow.value.get('src');
-    if (place._type === 'place') {
-        //find the object of place
-        const symbolTableObject = symbolTable.get(place.name);
-        symbolTableObject.value.delete('has');
-    }
-}
-function addObjectToOutputPlace(symbolTable, bindings, flow) {
-    let vars = flow.value.get('var');
-    let place = flow.value.get('tgt');
-    var symbolTableObject = symbolTable.get(place.name);
-    var substringContent = vars.name.substring(1, 3);
-    let symbolVariables = new symbol_model_1.default();
-    symbolVariables.value = new Map();
-    symbolVariables = lodash_1.default.cloneDeep(symbolTable.get(substringContent));
-    symbolVariables = vars;
-    symbolVariables.name = substringContent;
-    const symbolVar = symbolVariables.value;
-    const symbolTableObj = symbolTableObject.value.get('has');
-    symbolTableObj.value = symbolVar;
-    setVariablesWithValues(bindings, symbolTable);
-    console.log(symbolTableObject);
-}
-function setVariablesWithValues(bindings, symbolTable) {
-    for (const [key, value] of symbolTable.entries()) {
-        const valueSymbol = value;
-        if (valueSymbol._type === 'place') {
-            const labelSymbol = valueSymbol.value.get("has");
-            if (labelSymbol) {
-                if (labelSymbol._type === "tuple") {
-                    for (const [key1, value1] of labelSymbol.value.entries()) {
-                        const valueTuple = value1;
-                        setValue(bindings, labelSymbol, valueTuple.name, key1);
-                    }
-                }
-                else {
-                    setValue(bindings, labelSymbol, labelSymbol.name, key);
-                }
-            }
-        }
-    }
-}
-function setValue(bindings, labelSymbol, variable, key) {
-    const labelSymbol1 = labelSymbol;
-    if (labelSymbol) {
-        if (labelSymbol._type === "tuple") {
-            for (const bindingsMap of bindings) {
-                const labelSymbolValue = labelSymbol.value.get(key);
-                if (labelSymbolValue === undefined) {
-                    continue;
-                }
-                labelSymbolValue.name = bindingsMap.get(variable);
-            }
-        }
-        else {
-            for (const bindingsMap of bindings) {
-                labelSymbol1.name = bindingsMap.get(variable);
-            }
-        }
-    }
-}
-function findIncommingFlows(symbolTable, transitionName) {
-    const result = [];
-    for (const [key, value] of symbolTable.entries()) {
-        if (Array.isArray(value)) {
-            continue;
-        }
-        if (value._type != 'flow') {
-            continue;
-        }
-        const tgt = value.value.get('tgt');
-        if (tgt._type === 'transition' && tgt.name === transitionName) {
-            result.push(value);
-        }
-    }
-    return result;
-}
-function findOutCommingFlows(symbolTable, transitionName) {
-    const result = [];
-    for (const [key, value] of symbolTable.entries()) {
-        if (Array.isArray(value)) {
-            continue;
-        }
-        if (value._type != 'flow') {
-            continue;
-        }
-        const tgt = value.value.get('src');
-        if (tgt._type === 'transition' && tgt.name === transitionName) {
-            result.push(value);
-        }
-    }
-    return result;
-}
 doOneTransition(symbolTable, bindings);
 const G = (0, ts_graphviz_1.digraph)('G', (g) => {
     for (const [key, value] of symbolTable.entries()) {
@@ -254,25 +132,11 @@ const G = (0, ts_graphviz_1.digraph)('G', (g) => {
                     if (labelSymbol[i]._type === "tuple") {
                         for (const [key, value] of labelSymbol[i].value.entries()) {
                             const valueTuple = value;
-                            if (bindings.length === 0) {
-                                labelText = labelText + " " + valueTuple.name;
-                            }
-                            else {
-                                for (const valueVar of bindings) {
-                                    labelText = labelText + " " + valueVar.get(valueTuple.name);
-                                }
-                            }
+                            labelText = labelText + " " + valueTuple.name;
                         }
                     }
                     else {
-                        if (bindings.length === 0) {
-                            labelText = labelText + " " + labelSymbol[i].name;
-                        }
-                        else {
-                            for (const valueVar of bindings) {
-                                labelText = labelText + " " + valueVar.get(labelSymbol[i].name);
-                            }
-                        }
+                        labelText = labelText + " " + labelSymbol[i].name;
                     }
                 }
             }

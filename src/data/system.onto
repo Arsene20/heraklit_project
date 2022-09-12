@@ -20,13 +20,9 @@ shoes is-a item
 
 
 vendor-with-item is-a place
-vendor-with-item has t2
-t2 is-a tuple
 shirt is-a item
 
 client-with-money is-a place
-client-with-money has t3
-t3 is-a tuple
 
 take-home is-a transition
 
