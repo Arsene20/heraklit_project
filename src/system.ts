@@ -111,6 +111,7 @@ function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: 
 
 }
 
+let i: number = 1;
 function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[], transitionName: string) {
 
   for(const currentbinding of bindings) {
@@ -135,6 +136,7 @@ function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Ma
     // write new systemState
 
     // draw svg
+    generatedSvgGraph("svg" + i++ +".svg");
 
     // extend reachability graph
 
@@ -163,75 +165,80 @@ function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, flow
 
 doOneTransition(symbolTable, bindings);
 
-const G = digraph('G', (g) => {
+function generatedSvgGraph(outputsvgfilename: string) {
 
-  for(const [key, value] of symbolTable.entries()) {
-    if(value._type === 'place') {
+  const G = digraph('G', (g) => {
 
-      const labelSymbol: Symbol[] = value.value.get("has") as Symbol[];
-      var labelText = " ";
-      if(labelSymbol) {
-        for(let i = 0; i < labelSymbol.length; i++) {
-
-          if (labelSymbol[i]._type === "tuple") {
-
-            for(const [key, value] of labelSymbol[i].value.entries()) {
-              const valueTuple = value as Symbol;
-              labelText = labelText + " " + valueTuple.name;
+    for(const [key, value] of symbolTable.entries()) {
+      if(value._type === 'place') {
+  
+        const labelSymbol: Symbol[] = value.value.get("has") as Symbol[];
+        var labelText = " ";
+        if(labelSymbol) {
+          for(let i = 0; i < labelSymbol.length; i++) {
+  
+            if (labelSymbol[i]._type === "tuple") {
+  
+              for(const [key, value] of labelSymbol[i].value.entries()) {
+                const valueTuple = value as Symbol;
+                labelText = labelText + " " + valueTuple.name;
+              }
+  
             }
-
+            else {
+              labelText = labelText + " " + labelSymbol[i].name;
+            }
+  
           }
-          else {
-            labelText = labelText + " " + labelSymbol[i].name;
-          }
-
+  
         }
-
+        g.createNode(value.name, {[attribute.label]: labelText});
+  
       }
-      g.createNode(value.name, {[attribute.label]: labelText});
-      
-    }
-    else if(value._type === 'transition') {
-
-      g.createNode(value.name, {[attribute.shape]: "box"});
-
-    }
-    else if(value._type === 'flow') {
-
-      const src = value.value.get("src") as Symbol;
-      const tgt = value.value.get("tgt") as Symbol;
-      const varElements = value.value.get("var") as Symbol;
-      var label: string = '';
-      if(varElements._type === 'tuple') {
-        for(const [key, value] of varElements.value.entries()) {
-          const valueTuple = value as Symbol;
-          if (label != '') {
-            label += ', ' + valueTuple.name
+      else if(value._type === 'transition') {
+  
+        g.createNode(value.name, {[attribute.shape]: "box"});
+  
+      }
+      else if(value._type === 'flow') {
+  
+        const src = value.value.get("src") as Symbol;
+        const tgt = value.value.get("tgt") as Symbol;
+        const varElements = value.value.get("var") as Symbol;
+        var label: string = '';
+        if(varElements._type === 'tuple') {
+          for(const [key, value] of varElements.value.entries()) {
+            const valueTuple = value as Symbol;
+            if (label != '') {
+              label += ', ' + valueTuple.name
+            }
+            else {
+              label += valueTuple.name;
+            }
           }
-          else {
-            label += valueTuple.name;
-          }
+          g.createEdge([src.name, tgt.name], {[attribute.label]: '(' + label + ')'});
         }
-        g.createEdge([src.name, tgt.name], {[attribute.label]: '(' + label + ')'});
+        else{
+          g.createEdge([src.name, tgt.name], {[attribute.label]: varElements.name});
+        }
+  
       }
-      else{
-        g.createEdge([src.name, tgt.name], {[attribute.label]: varElements.name});
-      }
-
+      // console.log(JSON.stringify(outFlow, null, 3));
+  
     }
-    // console.log(JSON.stringify(outFlow, null, 3));
+  });
+  
+  hpccWasm.graphvizSync().then(graphviz => {
+    const svg = graphviz.layout(toDot(G), "svg", "dot");
+    fs.writeFileSync('src/svg_draw/' + outputsvgfilename, svg);
+  });
+  
+  
+  const dot = toDot
+  (G);
 
-  }
-});
+}
 
-hpccWasm.graphvizSync().then(graphviz => {
-  const svg = graphviz.layout(toDot(G), "svg", "dot");
-  fs.writeFileSync('system_graph_1.svg', svg);
-});
-
-
-const dot = toDot
-(G);
 // console.log(dot);
 
 

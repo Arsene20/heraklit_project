@@ -7,6 +7,7 @@
     "dev": "nodemon",
     "start": "ts-node src/system.ts"
   },
+  "main": "src/system.ts",
   "author": "Arsene",
   "license": "ISC",
   "dependencies": {
