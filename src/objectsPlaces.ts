@@ -22,8 +22,9 @@ class ObjectsPlaces {
         let place: Symbol = flow.value.get('tgt') as Symbol;
     
         let newSymbol: Symbol = new Symbol();
-        newSymbol.name = "gt" + this.globalObjectCount++;
+        // newSymbol.name = "gt" + this.globalObjectCount++;
         newSymbol._type = vars._type;
+        let symboleName = "t_";
     
         if(newSymbol._type === "tuple") {
 
@@ -33,6 +34,7 @@ class ObjectsPlaces {
               newValue.name = currentBinding.get(valueSymbole.name);
               const symbolTableValue = symbolTable.get(newValue.name) as Symbol;
               newValue._type = symbolTableValue._type;
+              symboleName += newValue._type;
               newSymbol.value.set(key, newValue);
             }
 
@@ -42,6 +44,7 @@ class ObjectsPlaces {
               place.value.set("has", placeList);
             }
 
+            newSymbol.name = symboleName + this.globalObjectCount++;
             placeList.push(newSymbol);
             console.log(placeList);
 
