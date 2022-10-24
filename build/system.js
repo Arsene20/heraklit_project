@@ -81,7 +81,6 @@ function doOneTransition(symbolTable, bindings) {
                 bindOneOutputVariable(symbolTable, flow);
             }
             bindings = bindingsList.bindings;
-            console.log(bindings);
             doAllBindings(symbolTable, bindings, value.name);
         }
     }
@@ -91,20 +90,39 @@ function doAllBindings(symbolTable, bindings, transitionName) {
     for (const currentbinding of bindings) {
         const symbolTableClone = lodash_1.default.cloneDeep(symbolTable);
         // Find incomming flows
-        let inFlowsList = findFlows.findIncommingFlows(symbolTable, transitionName);
+        let inFlowsList = findFlows.findIncommingFlows(symbolTableClone, transitionName);
         // Find outcomming flows
-        let outFlowsList = findFlows.findOutCommingFlows(symbolTable, transitionName);
+        let outFlowsList = findFlows.findOutCommingFlows(symbolTableClone, transitionName);
         // remove objects from input places
         for (let flow of inFlowsList) {
-            // objectsPlaces.removeObjectFromInputPlace(symbolTable, flow);
+            objectsPlaces.removeObjectFromInputPlace(symbolTableClone, flow);
         }
         // add objects to the output places
         for (let flow of outFlowsList) {
             objectsPlaces.addObjectToOutputPlace(symbolTableClone, currentbinding, flow);
         }
         // write new systemState
+        let outPut = "";
+        for (const [key, value] of symbolTableClone.entries()) {
+            const newValue = value;
+            if (newValue._type === "place") {
+                let newLine = `${key} is-a place\n`;
+                outPut += newLine;
+                for (const [hasKey, hasValue] of newValue.value.entries()) {
+                    const newHasValue = hasValue;
+                    console.log(newHasValue);
+                    if (newHasValue._type === 'tuple') {
+                        let value = newHasValue.value[0].name;
+                        newLine = `${key} has ${hasKey}\n`;
+                        outPut += newLine;
+                    }
+                    // outPut += newLine
+                }
+            }
+        }
+        console.log(symbolTableClone);
         // draw svg
-        generatedSvgGraph("svg" + i++ + ".svg");
+        generatedSvgGraph(symbolTableClone, "svg" + i++ + ".svg");
         // extend reachability graph
     }
 }
@@ -125,9 +143,9 @@ function bindOneOutputVariable(symbolTable, flow) {
     bindingsList.expandBySymbolTable(vars, symbolTable);
 }
 doOneTransition(symbolTable, bindings);
-function generatedSvgGraph(outputsvgfilename) {
+function generatedSvgGraph(symbolTableClone, outputsvgfilename) {
     const G = (0, ts_graphviz_1.digraph)('G', (g) => {
-        for (const [key, value] of symbolTable.entries()) {
+        for (const [key, value] of symbolTableClone.entries()) {
             if (value._type === 'place') {
                 const labelSymbol = value.value.get("has");
                 var labelText = " ";

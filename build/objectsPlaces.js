@@ -17,7 +17,7 @@ class ObjectsPlaces {
             symbolTableObject.value.delete('has');
         }
     }
-    addObjectToOutputPlace(symbolTable, currentBinding, flow) {
+    addObjectToOutputPlace(localSymbolTable, currentBinding, flow) {
         //find the variables of the target flows
         let vars = flow.value.get('var');
         //find the target flows
@@ -31,9 +31,9 @@ class ObjectsPlaces {
                 const valueSymbole = value;
                 let newValue = new symbol_model_1.default();
                 newValue.name = currentBinding.get(valueSymbole.name);
-                const symbolTableValue = symbolTable.get(newValue.name);
+                const symbolTableValue = localSymbolTable.get(newValue.name);
                 newValue._type = symbolTableValue._type;
-                symboleName += newValue._type;
+                symboleName += newValue.name;
                 newSymbol.value.set(key, newValue);
             }
             let placeList = place.value.get("has");
@@ -41,7 +41,7 @@ class ObjectsPlaces {
                 placeList = [];
                 place.value.set("has", placeList);
             }
-            newSymbol.name = symboleName + this.globalObjectCount++;
+            newSymbol.name = symboleName;
             placeList.push(newSymbol);
             console.log(placeList);
         }

@@ -14,7 +14,7 @@ class ObjectsPlaces {
 
     globalObjectCount: number = 1;
 
-    addObjectToOutputPlace(symbolTable: Map<string, Symbol | Symbol[]>, currentBinding: Map<string, string>, flow: Symbol) {
+    addObjectToOutputPlace(localSymbolTable: Map<string, Symbol | Symbol[]>, currentBinding: Map<string, string>, flow: Symbol) {
 
         //find the variables of the target flows
         let vars: Symbol = flow.value.get('var') as Symbol;
@@ -25,16 +25,16 @@ class ObjectsPlaces {
         // newSymbol.name = "gt" + this.globalObjectCount++;
         newSymbol._type = vars._type;
         let symboleName = "t_";
-    
+
         if(newSymbol._type === "tuple") {
 
             for(const [key, value] of vars.value.entries()) {
               const valueSymbole = value as Symbol;
               let newValue: Symbol = new Symbol();
               newValue.name = currentBinding.get(valueSymbole.name);
-              const symbolTableValue = symbolTable.get(newValue.name) as Symbol;
+              const symbolTableValue = localSymbolTable.get(newValue.name) as Symbol;
               newValue._type = symbolTableValue._type;
-              symboleName += newValue._type;
+              symboleName += newValue.name;
               newSymbol.value.set(key, newValue);
             }
 
@@ -44,7 +44,7 @@ class ObjectsPlaces {
               place.value.set("has", placeList);
             }
 
-            newSymbol.name = symboleName + this.globalObjectCount++;
+            newSymbol.name = symboleName
             placeList.push(newSymbol);
             console.log(placeList);
 

@@ -102,14 +102,18 @@ function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: 
 
         bindings = bindingsList.bindings;
 
-        console.log(bindings);
-
         doAllBindings(symbolTable, bindings, value.name);
 
       }
   }
 
 }
+
+
+//1 - prendre un etat.
+//2 - parcourt un etat: Ajoute le contenu de l'etat dans la meme liste.
+//3 - concatenne tout ce qu'il prend.
+//4 - Essaie de mettre tout dans un string.
 
 let i: number = 1;
 function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[], transitionName: string) {
@@ -119,14 +123,14 @@ function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Ma
     const symbolTableClone = _.cloneDeep(symbolTable);
 
      // Find incomming flows
-     let inFlowsList = findFlows.findIncommingFlows(symbolTable, transitionName);
+     let inFlowsList = findFlows.findIncommingFlows(symbolTableClone, transitionName);
      // Find outcomming flows
-     let outFlowsList = findFlows.findOutCommingFlows(symbolTable, transitionName);
+     let outFlowsList = findFlows.findOutCommingFlows(symbolTableClone, transitionName);
 
      // remove objects from input places
-    for(let flow of inFlowsList) {
-      // objectsPlaces.removeObjectFromInputPlace(symbolTable, flow);
-    }
+    // for(let flow of inFlowsList) {
+    //   objectsPlaces.removeObjectFromInputPlace(symbolTableClone, flow);
+    // }
 
     // add objects to the output places
     for(let flow of outFlowsList) {
@@ -134,12 +138,67 @@ function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Ma
     }
 
     // write new systemState
+    // let outPut: string = "";
+    // for(const [key, value] of symbolTableClone.entries()) {
+    //   const newValue = value as Symbol;
+    //   if(newValue._type === "place") {
+    //     let newLine = `${key} is-a place\n`
+    //     outPut += newLine;
+    //     for(const [hasKey, hasValue] of newValue.value.entries()) {
+    //       if(hasValue[0]._type === "tuple") {
+    //         let variableValue = hasValue[0].value;
+    //         console.log(variableValue)
+    //         for(const [hasKey1, hasValue1] of variableValue.entries()) {
+    //           newLine = `${key} has ${hasValue1.name}\n`
+    //         }
+    //       }
 
+    //       // newLine = `${key} has ${hasKey}\n`
+    //       outPut += newLine
+    //     }
+    //   }
+
+    // }
+
+    generatedHeraklitString(symbolTableClone);
+
+    console.log(symbolTableClone);
     // draw svg
-    generatedSvgGraph("svg" + i++ +".svg");
+    generatedSvgGraph(symbolTableClone, "svg" + i++ +".svg");
 
     // extend reachability graph
 
+  }
+
+}
+
+function generatedHeraklitString(state: Map<string, Symbol>) {
+  let predicate:string[]=[];
+  for(const [key, value] of state.entries()) {
+    const newValue = value as Symbol;
+    if(newValue._type === "place"){
+      let newLine = `${key} is-a place\n`;
+      predicate.push(newLine);
+      for(const [key1, value1] of newValue.value.entries()){
+        for(let s of value1 as Symbol[]) {
+          newLine = `${s.name} is-a ${s._type}\n`;
+          predicate.push(newLine);
+          newLine = `${key} ${key1} ${s.name}\n`;
+          predicate.push(newLine);
+        }
+      }
+    }
+    else if(newValue._type === "transition") {
+      
+      console.log(newValue);
+      let newLine = `${newValue.name} is-a ${newValue._type}\n`;
+      predicate.push(newLine);
+
+    }
+    else if(newValue._type === 'flow') {
+      console.log(newValue);
+      let newLine = `${newValue.name} is-a ${newValue._type}\n`;
+    }
   }
 
 }
@@ -165,11 +224,11 @@ function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, flow
 
 doOneTransition(symbolTable, bindings);
 
-function generatedSvgGraph(outputsvgfilename: string) {
+function generatedSvgGraph(symbolTableClone: Map<string, Symbol>, outputsvgfilename: string) {
 
   const G = digraph('G', (g) => {
 
-    for(const [key, value] of symbolTable.entries()) {
+    for(const [key, value] of symbolTableClone.entries()) {
       if(value._type === 'place') {
   
         const labelSymbol: Symbol[] = value.value.get("has") as Symbol[];
@@ -201,7 +260,7 @@ function generatedSvgGraph(outputsvgfilename: string) {
   
       }
       else if(value._type === 'flow') {
-  
+
         const src = value.value.get("src") as Symbol;
         const tgt = value.value.get("tgt") as Symbol;
         const varElements = value.value.get("var") as Symbol;
@@ -238,6 +297,8 @@ function generatedSvgGraph(outputsvgfilename: string) {
   (G);
 
 }
+
+
 
 // console.log(dot);
 
