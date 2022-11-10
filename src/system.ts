@@ -5,6 +5,8 @@ import Symbol from './Model/symbol.model';
 import _ from 'lodash';
 import FindFlows from './findFlows';
 import ObjectsPlaces from './objectsPlaces';
+import { ReacheabilityGraph, ReacheableState } from './Model/ReacheabilityGraph';
+import RGTransition from './Model/rGTransition';
 
 const hpccWasm = require('@hpcc-js/wasm');
 
@@ -79,30 +81,30 @@ function setValueOfPlaceInSymboleTable (lines: any) {
   }
 }
 
-function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[] ) {
+function doOneTransition(rg: ReacheabilityGraph, rs: ReacheableState, bindings: Map<string, string>[] ) {
   var inFlowsList: Symbol[] = [];
   var outFlowsList: Symbol[] = [];
 
   // Search for transition
-  for(const [key, value] of symbolTable.entries()) {
+  for(const [key, value] of rs.symbolTable.entries()) {
       if(! Array.isArray(value) && value._type === 'transition') {
 
-        console.log('transition : ' + value.name);
+        // console.log('transition : ' + value.name);
         // Find incomming flows
-        inFlowsList = findFlows.findIncommingFlows(symbolTable, value.name);
+        inFlowsList = findFlows.findIncommingFlows(rs.symbolTable, value.name);
         // Find outcomming flows
-        outFlowsList = findFlows.findOutCommingFlows(symbolTable, value.name);
+        outFlowsList = findFlows.findOutCommingFlows(rs.symbolTable, value.name);
 
         for(let flow of inFlowsList) {
           bindOneInPutVariable(flow);
         }
         for(let flow of outFlowsList) {
-          bindOneOutputVariable(symbolTable, flow);
+          bindOneOutputVariable(rs.symbolTable, flow);
         }
 
         bindings = bindingsList.bindings;
 
-        doAllBindings(symbolTable, bindings, value.name);
+        doAllBindings(rg, rs, bindings, value.name);
 
       }
   }
@@ -116,11 +118,11 @@ function doOneTransition(symbolTable: Map<string, Symbol | Symbol[]>, bindings: 
 //4 - Essaie de mettre tout dans un string.
 
 let i: number = 1;
-function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Map<string, string>[], transitionName: string) {
+function doAllBindings(g: ReacheabilityGraph, rs: ReacheableState, bindings: Map<string, string>[], transitionName: string) {
 
   for(const currentbinding of bindings) {
 
-    const symbolTableClone = _.cloneDeep(symbolTable);
+    const symbolTableClone = _.cloneDeep(rs.symbolTable);
 
      // Find incomming flows
      let inFlowsList = findFlows.findIncommingFlows(symbolTableClone, transitionName);
@@ -128,41 +130,35 @@ function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Ma
      let outFlowsList = findFlows.findOutCommingFlows(symbolTableClone, transitionName);
 
      // remove objects from input places
-    // for(let flow of inFlowsList) {
-    //   objectsPlaces.removeObjectFromInputPlace(symbolTableClone, flow);
-    // }
+    for(let flow of inFlowsList) {
+      objectsPlaces.removeObjectFromInputPlace(symbolTableClone, currentbinding, flow);
+    }
 
     // add objects to the output places
     for(let flow of outFlowsList) {
       objectsPlaces.addObjectToOutputPlace(symbolTableClone, currentbinding, flow);
     }
 
-    // write new systemState
-    // let outPut: string = "";
-    // for(const [key, value] of symbolTableClone.entries()) {
-    //   const newValue = value as Symbol;
-    //   if(newValue._type === "place") {
-    //     let newLine = `${key} is-a place\n`
-    //     outPut += newLine;
-    //     for(const [hasKey, hasValue] of newValue.value.entries()) {
-    //       if(hasValue[0]._type === "tuple") {
-    //         let variableValue = hasValue[0].value;
-    //         console.log(variableValue)
-    //         for(const [hasKey1, hasValue1] of variableValue.entries()) {
-    //           newLine = `${key} has ${hasValue1.name}\n`
-    //         }
-    //       }
 
-    //       // newLine = `${key} has ${hasKey}\n`
-    //       outPut += newLine
-    //     }
-    //   }
 
-    // }
+    let key = generatedHeraklitString(symbolTableClone);
 
-    generatedHeraklitString(symbolTableClone);
+    if (g.stateMap.get(key)) {
 
-    console.log(symbolTableClone);
+      let oldState = g.stateMap.get(key);
+
+      let newTransition: RGTransition;
+
+      rs.outGoingTransition.push();
+
+    }
+    else {
+      // we need to create Object(new reacheable state)
+      // add it in the reacheability graph
+      // add it to the todolList
+      // add a RGtransition
+      // jeudi: at 2PM 10/11/2022
+    }
     // draw svg
     generatedSvgGraph(symbolTableClone, "svg" + i++ +".svg");
 
@@ -172,7 +168,7 @@ function doAllBindings(symbolTable: Map<string, Symbol | Symbol[]>, bindings: Ma
 
 }
 
-function generatedHeraklitString(state: Map<string, Symbol>) {
+function generatedHeraklitString(state: Map<string, Symbol | Symbol[]>) {
   let predicate:string[]=[];
   for(const [key, value] of state.entries()) {
     const newValue = value as Symbol;
@@ -189,7 +185,7 @@ function generatedHeraklitString(state: Map<string, Symbol>) {
       }
     }
     else if(newValue._type === "transition") {
-      
+
       console.log(newValue);
       let newLine = `${newValue.name} is-a ${newValue._type}\n`;
       predicate.push(newLine);
@@ -198,9 +194,58 @@ function generatedHeraklitString(state: Map<string, Symbol>) {
     else if(newValue._type === 'flow') {
       console.log(newValue);
       let newLine = `${newValue.name} is-a ${newValue._type}\n`;
+      predicate.push(newLine);
+      for(const [key1, value1] of newValue.value.entries()){
+        const newValue1 = value1 as Symbol;
+        newLine = `${newValue.name} ${key1} ${newValue1.name}\n`;
+        predicate.push(newLine);
+        if(key1 === 'var') {
+          if(newValue1._type === 'tuple') {
+            newLine = `${newValue1.name} is-a ${newValue1._type}\n`;
+            predicate.push(newLine);
+            for(const [key2, value2] of newValue1.value.entries()) {
+              const newValue2 = value2 as Symbol;
+              newLine = `${newValue1.name} ${key2} ${newValue2.name}\n`;
+              predicate.push(newLine);
+            }
+          }
+          else {
+            newLine = `${newValue1.name} is-a ${key1}\n`;
+            predicate.push(newLine);
+          }
+        }
+      }
     }
   }
 
+  predicate = predicate.sort();
+  let fullText;
+
+  fullText = predicate.join('\n');
+  console.log(predicate);
+  return fullText;
+}
+
+function computeAllState(startState: Map<string, Symbol | Symbol[]>){
+  // Create reacheability graph
+  let rg: ReacheabilityGraph = new ReacheabilityGraph()
+  let key = generatedHeraklitString(startState)
+
+  // Add start state to reacheability graph
+  let reacheableState: ReacheableState = new ReacheableState()
+  // reacheableState.symbolTable = startState as Symbol;
+  rg.stateMap.set(key, reacheableState)
+
+  // add  start state to todoList
+  let todoList: ReacheableState[] = []
+  todoList.push(reacheableState)
+
+  // for each todoList entry expand one step
+  while(todoList.length > 0){
+    let currentState = todoList[0]
+    todoList.splice(0,1)
+    // expandOneState(rg,todoList,currentState)
+  }
 }
 
 function bindOneInPutVariable( flow: Symbol) {
@@ -222,7 +267,30 @@ function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, flow
   bindingsList.expandBySymbolTable(vars, symbolTable);
 }
 
-doOneTransition(symbolTable, bindings);
+doAllStates(symbolTable);
+// doOneTransition(symbolTable, bindings);
+
+function doAllStates(startSymbolTable: Map<string, Symbol | Symbol[]>) {
+
+  let rg: ReacheabilityGraph = new ReacheabilityGraph();
+  let rs: ReacheableState = new ReacheableState();
+  rs.symbolTable = startSymbolTable;
+
+  rs.name = 'rs' + rg.stateMap.size;
+
+  let key = generatedHeraklitString(rs.symbolTable);
+  rg.stateMap.set(key, rs);
+
+  let todoList: ReacheableState[] = [];
+  todoList.push(rs);
+
+  while(todoList.length > 0) {
+    let takeState = todoList[0];
+    todoList.splice(0, 1);
+    doOneTransition(rg, takeState, bindings);
+  }
+
+}
 
 function generatedSvgGraph(symbolTableClone: Map<string, Symbol>, outputsvgfilename: string) {
 

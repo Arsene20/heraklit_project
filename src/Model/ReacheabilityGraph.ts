@@ -1,16 +1,17 @@
+import Symbol from "./symbol.model";
+
 class RGTransition{
-    name!:string
-    target!: ReacheableState
+    name!:string;
+    target!: ReacheableState;
     }
 
 class ReacheableState{
-    symbolTable : Map<string,Symbol> = new Map()
-    outGoingTransition: RGTransition[]=[]
+    name!: string;
+    symbolTable : Map<string, Symbol | Symbol[]> = new Map();
+    outGoingTransition: RGTransition[] = [];
 }
 
 class ReacheabilityGraph{
-   stateMap:Map<string,ReacheableState> = new Map()
-
- 
+   stateMap:Map<string,ReacheableState> = new Map();
 }
 export  { ReacheabilityGraph , ReacheableState , RGTransition}

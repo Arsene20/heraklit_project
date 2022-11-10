@@ -2,13 +2,26 @@ import Symbol from './Model/symbol.model';
 
 class ObjectsPlaces {
 
-    removeObjectFromInputPlace(symbolTable: Map<string, Symbol | Symbol[]>, flow: Symbol) {
+    removeObjectFromInputPlace(symbolTable: Map<string, Symbol | Symbol[]>, currentBinding: Map<string, string>, flow: Symbol) {
         // find the source flows
         const place: Symbol = flow.value.get('src') as Symbol;
         if(place._type === 'place') {
           //find the object of place
-          const symbolTableObject: Symbol = symbolTable.get(place.name) as Symbol;
-          symbolTableObject.value.delete('has');
+          const varName = flow.value.get('var') as Symbol;
+          let sourceObjectName = currentBinding.get(varName.name);
+          if(typeof sourceObjectName != 'string') {
+            const objectSource = sourceObjectName as Symbol;
+            sourceObjectName = objectSource.name;
+          }
+          const placeHasArray = place.value.get('has') as Symbol[];
+          var position = 0;
+          for(let sourceObejct of placeHasArray) {
+            if(sourceObejct.name === sourceObjectName) {
+              placeHasArray.splice(position, 1);
+              break;
+            }
+            position++;
+          }
         }
     }
 
@@ -34,6 +47,7 @@ class ObjectsPlaces {
               newValue.name = currentBinding.get(valueSymbole.name);
               const symbolTableValue = localSymbolTable.get(newValue.name) as Symbol;
               newValue._type = symbolTableValue._type;
+              
               symboleName += newValue.name;
               newSymbol.value.set(key, newValue);
             }
