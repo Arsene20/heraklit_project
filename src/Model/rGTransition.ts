@@ -1,7 +1,7 @@
-import State from "./state";
+import { ReacheableState } from "./ReacheabilityGraph";
 
 class RGTransition {
     name!: string
-    target!: State
+    target!: ReacheableState
 }
 export default RGTransition;

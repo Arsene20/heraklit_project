@@ -19,6 +19,7 @@
     "ts-graphviz": "^0.16.0"
   },
   "devDependencies": {
+    "@diagrams-ts/graphviz-cli-renderer": "^0.5.0",
     "@types/node": "^18.7.2",
     "nodemon": "^2.0.15",
     "rimraf": "^3.0.0",

@@ -3,6 +3,8 @@ import Symbol from './Model/symbol.model';
 
 class BindingsList {
 
+    public bindings: Map<string, string>[] = [];
+
     expandBySymbolTable(vars: Symbol, symbolTable: Map<string, Symbol | Symbol[]>) {
 
         for(const oldMap of this.bindings) {
@@ -30,13 +32,14 @@ class BindingsList {
 
     }
 
-    public bindings: Map<string, string>[] = [];
-
     expand(varName: string, valueList: Symbol[], symbolTable: Map<string, Symbol | Symbol[]>) {
 
         if(this.bindings.length === 0) {
             for(const [key, value] of valueList.entries()) {
                 const newMap: Map<string, string> = new Map();
+                // if(typeof(value.name) != 'string') {
+                //     console.log("");
+                // }
                 newMap.set(varName, value.name);
                 this.handleTuple({ newMap, symbolVariable: symbolTable.get(varName) as Symbol, symbolValue: value });
                 this.bindings.push(newMap);
@@ -48,7 +51,10 @@ class BindingsList {
             for(const oldMap of oldList) {
                 for(const value of valueList) {
                     const newMap = _.cloneDeep(oldMap);
-                    newMap.set(varName, value);
+                    // if(typeof(value.name) != 'string') {
+                    //     console.log("");
+                    // }
+                    newMap.set(varName, value.name);
                     this.handleTuple({ newMap, symbolVariable: symbolTable.get(varName) as Symbol, symbolValue: value });
                     this.bindings.push(newMap);
                 }
@@ -61,13 +67,16 @@ class BindingsList {
 
     handleTuple({ newMap, symbolVariable, symbolValue }: { newMap: Map<string, string>; symbolVariable: Symbol; symbolValue: Symbol; }): void {
 
-        console.log(symbolValue);
+        // console.log(symbolValue);
 
         if(symbolValue._type === 'tuple') {
             for(const [key, varSymbol] of symbolVariable.value.entries()) {
                 const newVarSymbol = varSymbol as Symbol;
                 const value = symbolValue.value.get(key) as Symbol
                 newMap.set(newVarSymbol.name, value.name);
+                // if(typeof(value.name) != 'string') {
+                //     console.log("");
+                // }
             }
         }
 

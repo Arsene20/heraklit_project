@@ -6,12 +6,12 @@ class RGTransition{
     }
 
 class ReacheableState{
-    name!: string;
+    name: string  = '';
     symbolTable : Map<string, Symbol | Symbol[]> = new Map();
     outGoingTransition: RGTransition[] = [];
 }
 
 class ReacheabilityGraph{
-   stateMap:Map<string,ReacheableState> = new Map();
+   stateMap:Map<string, ReacheableState> = new Map();
 }
 export  { ReacheabilityGraph , ReacheableState , RGTransition}

@@ -46,6 +46,9 @@ class ObjectsPlaces {
               let newValue: Symbol = new Symbol();
               newValue.name = currentBinding.get(valueSymbole.name);
               const symbolTableValue = localSymbolTable.get(newValue.name) as Symbol;
+              if(symbolTableValue == undefined) {
+                console.log(symbolTableValue);
+              }
               newValue._type = symbolTableValue._type;
               
               symboleName += newValue.name;
