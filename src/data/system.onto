@@ -18,7 +18,6 @@ t11 has-item shoes
 Bob is-a client
 shoes is-a item
 
-
 vendor-with-item is-a place
 shirt is-a item
 
@@ -61,7 +60,6 @@ f shoes 110-EUR
 110-EUR is-a money
 fc1 param1 z
 z is-a var
-
 
 f4 is-a flow
 f4 src take-home

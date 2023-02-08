@@ -26,6 +26,7 @@ class BindingsList {
                     const funct = symbolTable.get(functName.name) as Symbol;
                     const functResult = funct.value.get(param1Value) as Symbol;
                     oldMap.set(newSubVar.name, functResult.name);
+
                 }
             }
         }
@@ -37,9 +38,6 @@ class BindingsList {
         if(this.bindings.length === 0) {
             for(const [key, value] of valueList.entries()) {
                 const newMap: Map<string, string> = new Map();
-                // if(typeof(value.name) != 'string') {
-                //     console.log("");
-                // }
                 newMap.set(varName, value.name);
                 this.handleTuple({ newMap, symbolVariable: symbolTable.get(varName) as Symbol, symbolValue: value });
                 this.bindings.push(newMap);
@@ -51,9 +49,6 @@ class BindingsList {
             for(const oldMap of oldList) {
                 for(const value of valueList) {
                     const newMap = _.cloneDeep(oldMap);
-                    // if(typeof(value.name) != 'string') {
-                    //     console.log("");
-                    // }
                     newMap.set(varName, value.name);
                     this.handleTuple({ newMap, symbolVariable: symbolTable.get(varName) as Symbol, symbolValue: value });
                     this.bindings.push(newMap);
@@ -67,16 +62,11 @@ class BindingsList {
 
     handleTuple({ newMap, symbolVariable, symbolValue }: { newMap: Map<string, string>; symbolVariable: Symbol; symbolValue: Symbol; }): void {
 
-        // console.log(symbolValue);
-
         if(symbolValue._type === 'tuple') {
             for(const [key, varSymbol] of symbolVariable.value.entries()) {
                 const newVarSymbol = varSymbol as Symbol;
                 const value = symbolValue.value.get(key) as Symbol
                 newMap.set(newVarSymbol.name, value.name);
-                // if(typeof(value.name) != 'string') {
-                //     console.log("");
-                // }
             }
         }
 

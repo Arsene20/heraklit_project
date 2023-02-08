@@ -7,21 +7,24 @@ class ObjectsPlaces {
         const place: Symbol = flow.value.get('src') as Symbol;
         if(place._type === 'place') {
           //find the object of place
-          const varName = flow.value.get('var') as Symbol;
-          let sourceObjectName = currentBinding.get(varName.name);
-          if(typeof sourceObjectName != 'string') {
-            const objectSource = sourceObjectName as Symbol;
-            sourceObjectName = objectSource.name;
-          }
-          const placeHasArray = place.value.get('has') as Symbol[];
-          var position = 0;
-          for(let sourceObejct of placeHasArray) {
-            if(sourceObejct.name === sourceObjectName) {
-              placeHasArray.splice(position, 1);
-              break;
+            const varName = flow.value.get('var') as Symbol;
+            let sourceObjectName = currentBinding.get(varName.name);
+            if(typeof sourceObjectName != 'string') {
+              const objectSource = sourceObjectName as Symbol;
+              sourceObjectName = objectSource.name;
             }
-            position++;
-          }
+            const placeHasArray = place.value.get('has') as Symbol[];
+            var position = 0;
+            for(let sourceObejct of placeHasArray) {
+              if(sourceObejct.name === sourceObjectName) {
+                placeHasArray.splice(position, 1);
+                break;
+              }
+              position++;
+            }
+
+          // }
+
         }
     }
 
@@ -33,7 +36,7 @@ class ObjectsPlaces {
         let vars: Symbol = flow.value.get('var') as Symbol;
         //find the target flows
         let place: Symbol = flow.value.get('tgt') as Symbol;
-    
+
         let newSymbol: Symbol = new Symbol();
         // newSymbol.name = "gt" + this.globalObjectCount++;
         newSymbol._type = vars._type;
@@ -50,7 +53,6 @@ class ObjectsPlaces {
                 console.log(symbolTableValue);
               }
               newValue._type = symbolTableValue._type;
-              
               symboleName += newValue.name;
               newSymbol.value.set(key, newValue);
             }
@@ -66,7 +68,7 @@ class ObjectsPlaces {
             console.log(placeList);
 
         }
-    
+
     }
 
 }

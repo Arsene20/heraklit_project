@@ -12,8 +12,8 @@ import { CliRenderer } from "@diagrams-ts/graphviz-cli-renderer";
 const hpccWasm = require('@hpcc-js/wasm');
 
 const symbolTable: Map<string, Symbol> = new Map();
-// const bindings: Map<string, string>[] = [];
-// const bindingsList = new BindingsList();
+let bindings: Map<string, string>[] = [];
+const bindingsList = new BindingsList();
 const findFlows = new FindFlows();
 const objectsPlaces = new ObjectsPlaces();
 
@@ -25,6 +25,8 @@ const data = fs.readFileSync('src/data/system.onto', 'utf8');
 const lines = data.toString().replace(/\r\n/g, '\n').split('\n');
 
 setSymbolTableByReadingFile (lines);
+
+
 function setSymbolTableByReadingFile (lines: any) {
   for (const line of  lines) {
 
@@ -49,14 +51,14 @@ function setValueOfPlaceInSymboleTable (lines: any) {
 
     const words = line.split(' ');
 
-    if(words.length < 3 || words[1] === "is-a") {
+    if(words == undefined || words.length < 3 || words[1] === "is-a") {
       continue;
     }
   
     const ownerName = words[0].trim();
     const verb = words[1];
     const value = words[2];
-  
+
     const ownerObject: Symbol = symbolTable.get(ownerName);
     const valueObject = symbolTable.get(value);
   
@@ -65,6 +67,20 @@ function setValueOfPlaceInSymboleTable (lines: any) {
     }
 
     const oldValue = ownerObject.value.get(verb);
+
+    // if(valueObject.value.get('has')) {
+
+    //   if(valueObject.value.get('has') instanceof Array) {
+    //     const tupleValue = valueObject.value.get('has') as Symbol[];
+
+    //     for (const value of tupleValue) {
+    //       if(value._type === 'tuple') {
+    //         console.log(value);
+    //       }
+    //     }
+    //   }
+
+    // }
 
     if(!oldValue) {
       ownerObject.value.set(verb, valueObject);
@@ -80,6 +96,7 @@ function setValueOfPlaceInSymboleTable (lines: any) {
     }
 
   }
+
 }
 
 // function doOneTransition(rg: ReacheabilityGraph, todoList:ReacheableState[], state: ReacheableState, bindings: Map<string, string>[] ) {
@@ -92,7 +109,7 @@ function doOneTransition(rg: ReacheabilityGraph, todoList:ReacheableState[], sta
   for(const [key, value] of state.symbolTable.entries()) {
       if(! Array.isArray(value) && value._type === 'transition') {
 
-        let bindings = new BindingsList();
+        // let bindings = new BindingsList();
 
         // Find incomming flows
         inFlowsList = findFlows.findIncommingFlows(state.symbolTable, value.name);
@@ -100,15 +117,19 @@ function doOneTransition(rg: ReacheabilityGraph, todoList:ReacheableState[], sta
         outFlowsList = findFlows.findOutCommingFlows(state.symbolTable, value.name);
 
         for(let flow of inFlowsList) {
-          bindOneInPutVariable(flow, bindings);
+          // bindOneInPutVariable(flow, bindings);
+          bindOneInPutVariable(flow);
         }
+
         for(let flow of outFlowsList) {
-          bindOneOutputVariable(state.symbolTable, flow, bindings);
+          bindOneOutputVariable(state.symbolTable, flow);
+          // bindOneOutputVariable(state.symbolTable, flow, bindings);
         }
 
-        // bindings = bindingsList.bindings;
+        bindings = bindingsList.bindings;
 
-        doAllBindings(rg, todoList, state, bindings.bindings, value.name);
+        // doAllBindings(rg, todoList, state, value.name);
+        doAllBindings(rg, todoList, state, bindings, value.name);
 
       }
   }
@@ -122,11 +143,14 @@ function doOneTransition(rg: ReacheabilityGraph, todoList:ReacheableState[], sta
 //4 - Essaie de mettre tout dans un string.
 
 let i: number = 1;
-function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state: ReacheableState, bindings: Map<string, string>[], transitionName: string) {
 
+// function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state: ReacheableState, transitionName: string) {
+  function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state: ReacheableState, bindings: Map<string, string>[], transitionName: string) {
+
+  console.log(state.symbolTable);
   for(const currentbinding of bindings) {
 
-    const symbolTableClone = _.cloneDeep(state.symbolTable);
+    let symbolTableClone = _.cloneDeep(state.symbolTable);
 
      // Find incomming flows
      let inFlowsList = findFlows.findIncommingFlows(symbolTableClone, transitionName);
@@ -143,9 +167,11 @@ function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state:
       objectsPlaces.addObjectToOutputPlace(symbolTableClone, currentbinding, flow);
     }
 
-
+    console.log(symbolTableClone);
 
     let key = generatedHeraklitString(symbolTableClone);
+    // let key = generatedHeraklitStringKey(symbolTableClone, transitionName);
+    let existingState = g.stateMap.get(key);
 
     let rs:ReacheableState = new ReacheableState();
     rs.name = "svg" + g.stateMap.size
@@ -157,6 +183,7 @@ function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state:
 
       let newTransition: RGTransition = new RGTransition();
       newTransition.name = transitionName;
+      // newTransition.target = existingState;
       newTransition.target = oldState;
 
       state.outGoingTransition.push(newTransition);
@@ -174,7 +201,7 @@ function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state:
       state.outGoingTransition.push(rgt);
 
       // draw svg
-      generatedSvgGraph(state.symbolTable as Map<string, Symbol>, "svg" + i++ +".svg");
+      generatedSvgGraph(symbolTableClone as Map<string, Symbol>, "svg" + i++ +".svg");
 
     }
 
@@ -189,13 +216,13 @@ function generatedHeraklitString(state: Map<string, Symbol | Symbol[]>) {
   for(const [key, value] of state.entries()) {
     const newValue = value as Symbol;
     if(newValue._type === "place"){
-      let newLine = `${key} is-a place\n`;
+      let newLine = `${key} is-a place`;
       predicate.push(newLine);
       for(const [key1, value1] of newValue.value.entries()){
         for(let s of value1 as Symbol[]) {
-          newLine = `${s.name} is-a ${s._type}\n`;
+          newLine = `${s.name} is-a ${s._type}`;
           predicate.push(newLine);
-          newLine = `${key} ${key1} ${s.name}\n`;
+          newLine = `${key} ${key1} ${s.name}`;
           predicate.push(newLine);
         }
       }
@@ -207,7 +234,8 @@ function generatedHeraklitString(state: Map<string, Symbol | Symbol[]>) {
       predicate.push(newLine);
 
     }
-    else if(newValue._type === 'flow') {
+    else
+    if(newValue._type === 'flow') {
       console.log(newValue);
       let newLine = `${newValue.name} is-a ${newValue._type}\n`;
       predicate.push(newLine);
@@ -242,7 +270,159 @@ function generatedHeraklitString(state: Map<string, Symbol | Symbol[]>) {
   return fullText;
 }
 
-function bindOneInPutVariable( flow: Symbol, bindings: BindingsList) {
+function generatedHeraklitKey(state: Map<string, Symbol | Symbol[]>) {
+
+  for(const [key, currentValue] of symbolTable.entries()) {
+    if(! Array.isArray(currentValue) && currentValue._type === 'transition') {
+
+      let transitionName = currentValue.name;
+
+      let predicate: string[]=[];
+      predicate.push(transitionName + "\n");
+
+      // Find incomming flows
+      let inFlowsList = findFlows.findIncommingFlows(symbolTable, transitionName);
+      // Find outcomming flows
+      let outFlowsList = findFlows.findOutCommingFlows(symbolTable, transitionName);
+    
+      // Find Object from inPut place
+      for(let inFlow of inFlowsList) {
+        // find the source flows
+        const place: Symbol = inFlow.value.get('src') as Symbol;
+        if(place._type === 'place') {
+          const placeHasArray = place.value.get('has') as Symbol[];
+          for(let sourceObejct of placeHasArray) {
+            if(sourceObejct._type != 'tuple') {
+              predicate.push(sourceObejct.name);
+            }
+            if(sourceObejct._type === 'tuple') {
+              for(const [key, newSourceObejct] of sourceObejct.value.entries()) {
+                const newObject = newSourceObejct as Symbol;
+                predicate.push(newObject.name);
+                console.log(newSourceObejct);
+              }
+            }
+          }
+        }
+      }
+    
+      // Find Object from outPut place
+      for(let outFlow of outFlowsList) {
+    
+        //find the target flows
+        let place: Symbol = outFlow.value.get('tgt') as Symbol;
+    
+        for(const [key, value] of place.value.entries()) {
+    
+          if(value == undefined) {
+            continue;
+          }
+    
+          const valueSymboles = value as Symbol[];
+    
+          for(let valueSymbole of valueSymboles) {
+    
+            if(value == undefined) {
+              continue;
+            }
+    
+            if(valueSymbole._type == "tuple") {
+              for(const [key1, value1] of valueSymbole.value.entries()) {
+                const newValue = value1 as Symbol;
+                predicate.push(newValue.name);
+              }
+            }
+    
+          }
+    
+        }
+    
+      }
+    
+      predicate = predicate.sort();
+    
+      let fullText;
+      fullText = predicate.join('\n');
+
+      console.log(fullText);
+
+      console.log(fullText);
+      return fullText;
+
+    }
+  }
+
+}
+
+function generatedHeraklitStringKey(symbolTable: Map<string, Symbol | Symbol[]>, transitionName: string) {
+
+
+  let predicate: string[]=[];
+  predicate.push(transitionName + "\n");
+
+  // Find incomming flows
+  let inFlowsList = findFlows.findIncommingFlows(symbolTable, transitionName);
+  // Find outcomming flows
+  let outFlowsList = findFlows.findOutCommingFlows(symbolTable, transitionName);
+
+  // Find Object from inPut place
+  for(let inFlow of inFlowsList) {
+    // find the source flows
+    const place: Symbol = inFlow.value.get('src') as Symbol;
+    if(place._type === 'place') {
+      const placeHasArray = place.value.get('has') as Symbol[];
+      for(let sourceObejct of placeHasArray) {
+        if(sourceObejct._type != 'tuple') {
+          predicate.push(sourceObejct.name);
+          console.log(predicate);
+        }
+      }
+    }
+  }
+
+  // Find Object from outPut place
+  for(let outFlow of outFlowsList) {
+
+    //find the target flows
+    let place: Symbol = outFlow.value.get('tgt') as Symbol;
+
+    for(const [key, value] of place.value.entries()) {
+
+      if(value == undefined) {
+        continue;
+      }
+
+      const valueSymboles = value as Symbol[];
+
+      for(let valueSymbole of valueSymboles) {
+
+        if(value == undefined) {
+          continue;
+        }
+
+        if(valueSymbole._type == "tuple") {
+          for(const [key1, value1] of valueSymbole.value.entries()) {
+            const newValue = value1 as Symbol;
+            predicate.push(newValue.name);
+          }
+        }
+
+      }
+
+    }
+
+  }
+
+  predicate = predicate.sort();
+
+  let fullText;
+  fullText = predicate.join('\n');
+
+  return fullText;
+}
+
+function bindOneInPutVariable( flow: Symbol) {
+  // function bindOneInPutVariable( flow: Symbol, bindings: BindingsList) {
   const vars: Symbol = flow.value.get('var') as Symbol;
   const place: Symbol = flow.value.get('src') as Symbol;
   let objectList: Symbol[] = [];
@@ -253,21 +433,21 @@ function bindOneInPutVariable( flow: Symbol, bindings: BindingsList) {
   else {
     objectList.push(place.value.get('has') as Symbol);
   }
-  // bindingsList.expand(vars.name, objectList, symbolTable);
-  bindings.expand(vars.name, objectList, symbolTable);
+  bindingsList.expand(vars.name, objectList, symbolTable);
+  // bindings.expand(vars.name, objectList, symbolTable);
+
 }
 
-function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, flow: Symbol, bindings: BindingsList) {
+function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, flow: Symbol) {
+  // function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, flow: Symbol, bindings: BindingsList) {
   const vars: Symbol = flow.value.get('var') as Symbol;
-  // bindingsList.expandBySymbolTable(vars, symbolTable);
-  bindings.expandBySymbolTable(vars, symbolTable);
+  bindingsList.expandBySymbolTable(vars, symbolTable);
+  // bindings.expandBySymbolTable(vars, symbolTable);
 }
 
-//friday 18 1pm
 
 let rg = doAllStates(symbolTable);
-generateSvgRg(rg);
-// doOneTransition(symbolTable, bindings);
+// generateSvgRg(rg);
 
 // generate svg Rg
 function generateSvgRg(rg: ReacheabilityGraph) {
@@ -301,24 +481,29 @@ function doAllStates(startSymbolTable: Map<string, Symbol | Symbol[]>): Reacheab
 
   //Let Add start state to Reachability graph
   let rs: ReacheableState = new ReacheableState();
-  rs.symbolTable = startSymbolTable;
   rs.name = 'svg' + rg.stateMap.size;
+  rs.symbolTable = startSymbolTable;
   rg.stateMap.set(key, rs);
 
   //Let draw svg
-  generatedSvgGraph(startSymbolTable as Map<string, Symbol>, "svg0.svg");
+  // generatedSvgGraph(startSymbolTable as Map<string, Symbol>, "svg0.svg");
+  generatedSvgGraph(rs.symbolTable as Map<string, Symbol>, "svg0.svg");
 
   //let add  start reacheable state to todoList
   let todoList: ReacheableState[] = [];
   todoList.push(rs);
 
   while(todoList.length > 0) {
+    console.log(todoList);
     let takeState = todoList[0];
     todoList.splice(0, 1);
+    // let takeState = todoList.pop();
     // doOneTransition(rg, todoList, takeState, bindings);
+    console.log(takeState);
+    console.log(todoList);
     doOneTransition(rg, todoList, takeState);
   }
-
+  console.log(rg);
   return rg;
 
 }
@@ -329,7 +514,7 @@ function generatedSvgGraph(symbolTableClone: Map<string, Symbol>, outputsvgfilen
 
     for(const [key, value] of symbolTableClone.entries()) {
       if(value._type === 'place') {
-  
+
         const labelSymbol: Symbol[] = value.value.get("has") as Symbol[];
         var labelText = " ";
         if(labelSymbol) {
@@ -351,7 +536,7 @@ function generatedSvgGraph(symbolTableClone: Map<string, Symbol>, outputsvgfilen
   
         }
         g.createNode(value.name, {[attribute.label]: labelText});
-  
+
       }
       else if(value._type === 'transition') {
   
