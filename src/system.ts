@@ -8,6 +8,8 @@ import ObjectsPlaces from './objectsPlaces';
 import { ReacheabilityGraph, ReacheableState } from './Model/ReacheabilityGraph';
 import RGTransition from './Model/rGTransition';
 import { CliRenderer } from "@diagrams-ts/graphviz-cli-renderer";
+import Association from './Model/association';
+import definition from './Model/definition';
 
 const hpccWasm = require('@hpcc-js/wasm');
 
@@ -18,6 +20,19 @@ const findFlows = new FindFlows();
 const objectsPlaces = new ObjectsPlaces();
 
 const bindingsVariables: Map<string, string>[] = [];
+
+export class Transition extends Symbol {
+  inFlows: Flow[] = []
+  outFlows: Flow[] = []
+  equations: Map<string, definition> = new Map()
+  valueAssociation: Map<string, Association> = new Map()
+}
+
+class Flow extends Symbol {
+  list: string[] = []
+}
+
+
 
 
 const data = fs.readFileSync('src/data/system.onto', 'utf8');
@@ -106,32 +121,51 @@ function doOneTransition(rg: ReacheabilityGraph, todoList:ReacheableState[], sta
   var outFlowsList: Symbol[] = [];
 
   // Search for transition
-  for(const [key, value] of state.symbolTable.entries()) {
-      if(! Array.isArray(value) && value._type === 'transition') {
+  for(const key of state.symbolTable.keys()) {
+    const eSymbol = state.symbolTable.get(key) as Symbol
+    if(eSymbol._type === 'transition') {
+      // if(! Array.isArray(value) && value._type === 'transition') {
+        let trans: Transition;
+        trans = eSymbol as Transition
+      // let bindings = new BindingsList();
 
-        // let bindings = new BindingsList();
+      // Find incomming flows
+      inFlowsList = findFlows.findIncommingFlows(state.symbolTable, eSymbol.name);
+      // Find outcomming flows
+      outFlowsList = findFlows.findOutCommingFlows(state.symbolTable, eSymbol.name);
 
-        // Find incomming flows
-        inFlowsList = findFlows.findIncommingFlows(state.symbolTable, value.name);
-        // Find outcomming flows
-        outFlowsList = findFlows.findOutCommingFlows(state.symbolTable, value.name);
-
-        for(let flow of inFlowsList) {
-          // bindOneInPutVariable(flow, bindings);
-          bindOneInPutVariable(flow);
+      for(let flow of inFlowsList) {
+        // bindOneInPutVariable(flow, bindings);
+        // bindOneInPutVariable(flow);
+        const vars: Symbol = flow.value.get('var') as Symbol;
+        const place: Symbol = flow.value.get('src') as Symbol;
+        let objectList: Symbol[] = [];
+        if (Array.isArray(place.value.get('has')))
+        {
+          objectList = place.value.get('has') as Symbol[]
         }
-
-        for(let flow of outFlowsList) {
-          bindOneOutputVariable(state.symbolTable, flow);
-          // bindOneOutputVariable(state.symbolTable, flow, bindings);
+        else {
+          objectList.push(place.value.get('has') as Symbol);
         }
-
-        bindings = bindingsList.bindings;
-
-        // doAllBindings(rg, todoList, state, value.name);
-        doAllBindings(rg, todoList, state, bindings, value.name);
-
+        bindingsList.expand(vars.name, objectList, symbolTable);
       }
+
+      for(let flow of outFlowsList) {
+        // bindOneOutputVariable(state.symbolTable, flow);
+        // bindOneOutputVariable(state.symbolTable, flow, bindings);
+        const vars: Symbol = flow.value.get('var') as Symbol;
+        bindingsList.expandBySymbolTable(vars, symbolTable);
+      }
+
+      bindings = bindingsList.bindings;
+
+
+      for(const currentbinding of bindings) {
+        // doAllBindings(rg, todoList, state, value.name);
+        doAllBindings(rg, todoList, state, currentbinding, eSymbol.name);
+      }
+
+    }
   }
 
 }
@@ -145,10 +179,11 @@ function doOneTransition(rg: ReacheabilityGraph, todoList:ReacheableState[], sta
 let i: number = 1;
 
 // function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state: ReacheableState, transitionName: string) {
-  function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state: ReacheableState, bindings: Map<string, string>[], transitionName: string) {
+  // function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state: ReacheableState, bindings: Map<string, string>[], transitionName: string) {
+    function doAllBindings(g: ReacheabilityGraph, todoList:ReacheableState[], state: ReacheableState, bindings: Map<string, string>, transitionName: string) {
 
   console.log(state.symbolTable);
-  for(const currentbinding of bindings) {
+  // for(const currentbinding of bindings) {
 
     let symbolTableClone = _.cloneDeep(state.symbolTable);
 
@@ -159,32 +194,32 @@ let i: number = 1;
 
      // remove objects from input places
     for(let flow of inFlowsList) {
-      objectsPlaces.removeObjectFromInputPlace(symbolTableClone, currentbinding, flow);
+      objectsPlaces.removeObjectFromInputPlace(symbolTableClone, bindings, flow);
     }
 
     // add objects to the output places
     for(let flow of outFlowsList) {
-      objectsPlaces.addObjectToOutputPlace(symbolTableClone, currentbinding, flow);
+      objectsPlaces.addObjectToOutputPlace(symbolTableClone, bindings, flow);
     }
 
     console.log(symbolTableClone);
 
-    let key = generatedHeraklitString(symbolTableClone);
+    let newkey = generatedHeraklitString(symbolTableClone);
     // let key = generatedHeraklitStringKey(symbolTableClone, transitionName);
-    let existingState = g.stateMap.get(key);
+    let existingState = g.stateMap.get(newkey);
 
     let rs:ReacheableState = new ReacheableState();
     rs.name = "svg" + g.stateMap.size
     rs.symbolTable = symbolTableClone;
 
-    if (g.stateMap.get(key)) {
+    if (existingState) {
 
-      let oldState = g.stateMap.get(key);
+      let oldState = g.stateMap.get(newkey);
 
       let newTransition: RGTransition = new RGTransition();
       newTransition.name = transitionName;
-      // newTransition.target = existingState;
-      newTransition.target = oldState;
+      newTransition.target = existingState;
+      // newTransition.target = oldState;
 
       state.outGoingTransition.push(newTransition);
     }
@@ -193,7 +228,7 @@ let i: number = 1;
       // add it in the reacheability graph
       // add it to the todolList
       // add a RGtransition
-      g.stateMap.set(key, state);
+      g.stateMap.set(newkey, rs);
       todoList.push(rs);
       let rgt:RGTransition = new RGTransition ();
       rgt.name = transitionName;
@@ -207,7 +242,7 @@ let i: number = 1;
 
     // extend reachability graph
 
-  }
+  // }
 
 }
 
@@ -447,7 +482,7 @@ function bindOneOutputVariable(symbolTable: Map<string, Symbol | Symbol[]>, flow
 
 
 let rg = doAllStates(symbolTable);
-// generateSvgRg(rg);
+generateSvgRg(rg);
 
 // generate svg Rg
 function generateSvgRg(rg: ReacheabilityGraph) {
